@@ -1,0 +1,3068 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="theme-color" content="#0a0a12">
+<title>Stat Roller</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Bangers&family=Nunito:wght@700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bangers&family=Nunito:wght@700;800;900&display=swap"></noscript>
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyALbGafO2rveIal7MT4JbfcHF-s_yrxAp8",
+  authDomain: "stat-roller.firebaseapp.com",
+  projectId: "stat-roller",
+  storageBucket: "stat-roller.firebasestorage.app",
+  messagingSenderId: "626615793131",
+  appId: "1:626615793131:web:79c60f4bd15f29eefb55ae"
+};
+try{
+  firebase.initializeApp(firebaseConfig);
+} catch(e){}
+const fbAuth = typeof firebase!=='undefined' ? firebase.auth() : null;
+const fbDb   = typeof firebase!=='undefined' ? firebase.firestore() : null;
+let currentUser = null;
+</script>
+<style>
+:root{--bg:#0a0a12;--panel:#12121e;--p2:#0d0d1a;--border:#2a2a40;--text:#e8e8ff;--sub:#6666aa;}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{width:100%;height:100%;margin:0;padding:0;}
+body{background:var(--bg);min-height:100vh;width:100%;margin:0;padding:0;display:flex;align-items:center;justify-content:center;font-family:'Nunito','Segoe UI',system-ui,sans-serif;color:var(--text);overflow-x:hidden;}
+@media(max-width:520px){body{align-items:flex-start;justify-content:center;padding:10px 0;}
+.shell{width:100%;max-width:100vw;border-radius:0;border-left:none;border-right:none;}}
+body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(1px 1px at 8% 15%,rgba(255,255,255,.5) 0%,transparent 100%),radial-gradient(1px 1px at 25% 68%,rgba(255,255,255,.4) 0%,transparent 100%),radial-gradient(1px 1px at 58% 12%,rgba(255,255,255,.5) 0%,transparent 100%),radial-gradient(1px 1px at 78% 48%,rgba(255,255,255,.3) 0%,transparent 100%),radial-gradient(1px 1px at 43% 88%,rgba(255,255,255,.4) 0%,transparent 100%),radial-gradient(1px 1px at 92% 77%,rgba(255,255,255,.5) 0%,transparent 100%),radial-gradient(1px 1px at 4% 52%,rgba(255,255,255,.3) 0%,transparent 100%),radial-gradient(1px 1px at 68% 32%,rgba(255,255,255,.4) 0%,transparent 100%),radial-gradient(1px 1px at 87% 20%,rgba(255,255,255,.35) 0%,transparent 100%),radial-gradient(1px 1px at 50% 50%,rgba(255,255,255,.3) 0%,transparent 100%);pointer-events:none;z-index:0;}
+
+.shell{position:relative;z-index:1;width:480px;background:var(--panel);border:2px solid var(--border);border-radius:22px;box-shadow:0 0 60px rgba(80,60,160,.25),0 0 120px rgba(40,20,100,.15);}
+.header{padding:20px 28px 0;}
+h1{font-family:'Bangers','Impact','Arial Black',cursive;font-size:2.4rem;letter-spacing:3px;text-align:center;background:linear-gradient(135deg,#ffe066,#ff88ff,#66aaff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:2px;}
+.subtitle{text-align:center;font-size:.68rem;color:var(--sub);font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px;}
+
+/* TABS */
+.tabs{display:flex;border-bottom:2px solid var(--border);padding:0 10px;gap:1px;overflow-x:auto;scrollbar-width:none;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{font-family:'Bangers','Impact','Arial Black',cursive;font-size:.88rem;letter-spacing:1.2px;padding:7px 12px 9px;border:none;background:none;color:var(--sub);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:color .2s,border-color .2s;white-space:nowrap;flex-shrink:0;}
+.tab:hover{color:var(--text);}
+.tab.active{color:var(--text);border-bottom-color:#ffe066;}
+.panel{display:none;padding:18px 22px 22px;max-height:calc(95vh - 135px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:#2a2a40 transparent;}
+.panel::-webkit-scrollbar{width:4px;}
+.panel::-webkit-scrollbar-thumb{background:#2a2a40;border-radius:99px;}
+.panel.active{display:block;}
+
+/* ROLL */
+.top-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.pill{display:flex;align-items:center;gap:5px;background:var(--p2);border:1px solid var(--border);border-radius:99px;padding:4px 12px;}
+.pill-lbl{font-size:.58rem;color:var(--sub);font-weight:800;letter-spacing:1px;text-transform:uppercase;}
+.pill-val{font-family:'Bangers','Impact','Arial Black',cursive;font-size:1rem;letter-spacing:1px;}
+.cv{color:#ffcc00;}.mv{color:#aaeeff;}
+
+.result-box{background:var(--p2);border:2px solid var(--border);border-radius:14px;height:112px;display:flex;flex-direction:column;align-items:center;justify-content:center;margin-bottom:10px;position:relative;overflow:hidden;transition:border-color .3s,box-shadow .3s,background .3s;}
+.result-box.glow{animation:bPulse .6s ease-out;}
+@keyframes bPulse{0%{transform:scale(1)}30%{transform:scale(1.04)}100%{transform:scale(1)}}
+.result-box::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.05),transparent);transform:translateX(-100%);pointer-events:none;}
+.result-box.shimmer::after{animation:shim .6s ease-out;}
+@keyframes shim{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+.rlabel{font-family:'Bangers','Impact','Arial Black',cursive;font-size:2.3rem;letter-spacing:2px;}
+.rodds{font-size:.7rem;color:var(--sub);font-weight:700;letter-spacing:1px;margin-top:1px;}
+.rbonus{font-size:.65rem;font-weight:900;letter-spacing:1px;margin-top:1px;}
+.rph{font-size:1rem;color:#333355;font-weight:800;letter-spacing:1px;}
+.active-glove{font-size:.6rem;font-weight:800;letter-spacing:1px;color:#22aaff;text-align:center;margin-bottom:4px;min-height:14px;}
+
+.roll-btn{width:100%;padding:13px;font-family:'Bangers','Impact','Arial Black',cursive;font-size:1.7rem;letter-spacing:3px;color:#0a0a12;background:linear-gradient(135deg,#ffe066,#ffaa00);border:none;border-radius:12px;cursor:pointer;box-shadow:0 4px 20px rgba(255,180,0,.3);transition:transform .1s,box-shadow .1s;margin-bottom:12px;user-select:none;}
+.roll-btn:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(255,180,0,.45);}
+.roll-btn:active{transform:translateY(1px);}
+.roll-btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+
+.buff-bar{display:flex;flex-wrap:wrap;gap:4px;min-height:18px;margin-bottom:10px;}
+.buff-chip{font-size:.57rem;font-weight:900;padding:2px 7px;border-radius:99px;border:1px solid currentColor;opacity:.9;letter-spacing:.5px;}
+.slbl{font-size:.6rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--sub);margin-bottom:6px;}
+.history{display:flex;flex-wrap:wrap;gap:4px;min-height:20px;}
+.htag{font-size:.6rem;font-weight:800;padding:3px 7px;border-radius:99px;background:var(--p2);border:1px solid currentColor;opacity:.85;animation:popIn .2s ease;}
+@keyframes popIn{from{opacity:0;transform:scale(.8)}to{opacity:.85;transform:scale(1)}}
+
+/* INDEX */
+.idx-search{width:100%;padding:8px 13px;background:var(--p2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Nunito','Segoe UI',system-ui,sans-serif;font-size:.82rem;font-weight:700;outline:none;margin-bottom:10px;transition:border-color .2s;}
+.idx-search:focus{border-color:#ffe06677;}
+.idx-search::placeholder{color:var(--sub);}
+.rarity-row{display:flex;align-items:center;gap:7px;background:var(--p2);border-radius:9px;padding:7px 11px;border:1px solid #1a1a2e;margin-bottom:4px;transition:border-color .25s,background .25s;}
+.rarity-row.active{background:#14142a;}
+.rarity-row.mutated{border-color:rgba(255,255,255,.08)!important;background:linear-gradient(135deg,#0d0d1a 55%,rgba(255,255,255,.025));}
+.rarity-row.secret{border-color:rgba(255,215,0,.15)!important;background:linear-gradient(135deg,#0d0d1a 55%,rgba(255,215,0,.04));}
+.rarity-row.hidden{display:none;}
+.dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.rn{font-weight:800;font-size:.81rem;flex:1;}
+.rc{font-size:.69rem;color:var(--sub);font-weight:700;}
+.mbadge{font-size:.44rem;font-weight:900;letter-spacing:1px;padding:1px 4px;border-radius:4px;background:rgba(255,255,255,.07);color:rgba(255,255,255,.38);text-transform:uppercase;flex-shrink:0;}
+.money-badge{font-size:.44rem;font-weight:900;padding:1px 4px;border-radius:4px;background:rgba(255,204,0,.12);color:#ffcc00;flex-shrink:0;}
+.secret-badge{font-size:.44rem;font-weight:900;padding:1px 4px;border-radius:4px;background:rgba(255,215,0,.1);color:#ffd700;flex-shrink:0;}
+.su-badge{font-size:.44rem;font-weight:900;padding:1px 4px;border-radius:4px;background:rgba(255,220,50,.15);color:#ffdd44;border:1px solid rgba(255,220,50,.3);flex-shrink:0;letter-spacing:.5px;}
+.special-badge{font-size:.44rem;font-weight:900;padding:1px 5px;border-radius:4px;background:linear-gradient(135deg,rgba(255,250,205,.15),rgba(170,238,255,.1));color:#fffacd;border:1px solid rgba(255,250,205,.4);flex-shrink:0;letter-spacing:.5px;animation:nPulse 2s ease infinite alternate;}
+.ultra-badge{font-size:.44rem;font-weight:900;padding:1px 5px;border-radius:4px;background:linear-gradient(135deg,rgba(255,0,255,.2),rgba(100,0,255,.2));color:#ff88ff;border:1px solid rgba(255,0,255,.4);flex-shrink:0;letter-spacing:.5px;animation:nPulse .8s ease infinite alternate;}
+
+/* LEADERBOARD */
+.lb-name-box{background:var(--p2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;}
+.lb-intro-title{font-family:'Bangers','Impact','Arial Black',cursive;font-size:1.3rem;letter-spacing:2px;background:linear-gradient(135deg,#ffe066,#ff88ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-align:center;}
+.lb-intro-sub{font-size:.62rem;color:var(--sub);font-weight:700;text-align:center;margin-top:2px;}
+.lb-board{display:flex;flex-direction:column;gap:5px;}
+.lb-row{display:flex;align-items:center;gap:8px;background:var(--p2);border:1px solid #1a1a2e;border-radius:9px;padding:8px 11px;transition:border-color .2s;}
+.lb-row.me{border-color:#ffe06644;background:#14120a;}
+.lb-rank{font-family:'Bangers','Impact','Arial Black',cursive;font-size:1rem;letter-spacing:1px;min-width:22px;text-align:center;}
+.lb-rank.gold-r{color:#ffd700;}.lb-rank.silver-r{color:#c0c0c0;}.lb-rank.bronze-r{color:#cd7f32;}
+.lb-name{font-weight:800;font-size:.78rem;flex:1;}
+.lb-val{font-family:'Bangers','Impact','Arial Black',cursive;font-size:.88rem;letter-spacing:1px;color:#ffcc00;}
+.lb-sub{font-size:.58rem;color:var(--sub);font-weight:700;}
+.lb-empty{font-size:.72rem;color:var(--sub);font-weight:700;text-align:center;padding:16px;}
+
+/* DUCKY EVENT / STATPASS */
+.duck-event-banner{display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#1a1200,#0d0d1a);border:1px solid #ffcc0044;border-radius:14px;padding:12px 16px;margin-bottom:12px;}
+.duck-event-title{font-family:'Bangers','Impact','Arial Black',cursive;font-size:1.3rem;letter-spacing:2px;color:#ffdd44;}
+.duck-event-sub{font-size:.6rem;font-weight:800;color:#aa8800;letter-spacing:1px;}
+.statpass-bar-wrap{margin-bottom:14px;}
+.statpass-bar-track{height:10px;background:#1a1a2e;border-radius:99px;overflow:hidden;margin-bottom:4px;}
+.statpass-bar-fill{height:100%;background:linear-gradient(90deg,#ffcc00,#ff88ff);border-radius:99px;transition:width .5s ease;width:0%;}
+.statpass-bar-label{font-size:.62rem;font-weight:800;color:var(--sub);letter-spacing:1px;text-align:right;}
+.statpass-tiers{display:flex;flex-direction:column;gap:5px;}
+.sp-tier{display:flex;align-items:center;gap:10px;background:var(--p2);border:1px solid #1a1a2e;border-radius:10px;padding:8px 12px;transition:border-color .2s;}
+.sp-tier.unlocked{border-color:#ffcc0055;background:linear-gradient(135deg,#14120a,#0d0d1a);}
+.sp-tier.current{border-color:#ffcc00aa;box-shadow:0 0 12px rgba(255,204,0,.15);}
+.sp-tier-num{font-family:'Bangers','Impact','Arial Black',cursive;font-size:1rem;min-width:28px;color:var(--sub);}
+.sp-tier.unlocked .sp-tier-num{color:#ffcc00;}
+.sp-tier-icon{font-size:1.2rem;min-width:24px;text-align:center;}
+.sp-tier-info{flex:1;}
+.sp-tier-name{font-weight:800;font-size:.75rem;}
+.sp-tier-desc{font-size:.58rem;color:var(--sub);font-weight:700;}
+.sp-tier-badge{font-size:.5rem;font-weight:900;padding:2px 6px;border-radius:5px;background:rgba(255,204,0,.15);color:#ffcc00;border:1px solid rgba(255,204,0,.3);}
+.sp-tier.unlocked .sp-tier-badge{background:rgba(85,221,85,.15);color:#55dd88;border-color:rgba(85,221,85,.3);}
+
+/* INVENTORY */
+.inv-item{display:flex;align-items:center;gap:10px;background:var(--p2);border:1px solid #1a1a2e;border-radius:10px;padding:10px 12px;margin-bottom:6px;transition:border-color .2s;}
+.inv-item.active{border-color:#ffcc0055;}
+.inv-item.locked{opacity:.4;}
+.ach-item{display:flex;align-items:flex-start;gap:10px;background:var(--p2);border:1px solid #1a1a2e;border-radius:12px;padding:12px 14px;margin-bottom:8px;transition:border-color .3s,box-shadow .3s;}
+.ach-item.unlocked{border-color:#aa88ff55;box-shadow:0 0 12px #aa88ff22;}
+.ach-item.locked{opacity:.45;filter:grayscale(.6);}
+.ach-item.secret.locked .ach-name{color:#333355;}
+.ach-item.secret.locked .ach-desc{color:#222244;}
+.ach-icon{font-size:1.5rem;min-width:28px;text-align:center;margin-top:2px;}
+.ach-icon.locked-icon{filter:grayscale(1);opacity:.4;}
+.ach-name{font-family:'Bangers','Impact',cursive;font-size:.95rem;letter-spacing:1.5px;color:#e8e8ff;}
+.ach-desc{font-size:.62rem;font-weight:800;color:var(--sub);margin-top:2px;line-height:1.4;}
+.ach-badge{font-size:.55rem;font-weight:900;letter-spacing:1px;padding:2px 7px;border-radius:6px;margin-left:auto;min-width:fit-content;white-space:nowrap;}
+.ach-badge.done{background:#aa88ff33;color:#aa88ff;border:1px solid #aa88ff55;}
+.ach-badge.nope{background:#1a1a2e;color:#333355;border:1px solid #2a2a40;}
+.ach-section{font-family:'Bangers','Impact',cursive;font-size:.85rem;letter-spacing:2px;color:#6644aa;margin:14px 0 8px;}
+.inv-icon{font-size:1.4rem;min-width:28px;text-align:center;}
+.inv-info{flex:1;}
+.inv-name{font-weight:800;font-size:.78rem;}
+.inv-desc{font-size:.58rem;color:var(--sub);font-weight:700;margin-top:1px;}
+.inv-tier{font-size:.5rem;font-weight:900;color:#ffcc00;letter-spacing:1px;}
+.inv-toggle{padding:5px 12px;font-family:'Bangers','Impact','Arial Black',cursive;font-size:.75rem;letter-spacing:1px;border:none;border-radius:8px;cursor:pointer;transition:opacity .15s;}
+.inv-toggle.on{background:linear-gradient(135deg,#ffcc00,#ff8800);color:#0a0a12;}
+.inv-toggle.off{background:#1a1a2e;color:var(--sub);border:1px solid var(--border);}
+.inv-toggle:disabled{opacity:.3;cursor:not-allowed;}
+
+/* SNEAK PEEK */
+.sneak-item{background:var(--p2);border:1px solid #ffe06622;border-radius:8px;padding:8px 12px;font-size:.72rem;font-weight:700;color:#ccccee;line-height:1.5;}
+.sneak-item b{color:#ffe066;}
+
+/* DUCK COSMETICS */
+body.duck-yellow{background:#2a1f00 !important;}
+body.duck-yellow .shell{background:#0d0900 !important;border-color:#ffcc0055 !important;}
+body.duck-yellow h1{background:linear-gradient(135deg,#ffff00,#ffcc00,#ff8800) !important;-webkit-background-clip:text !important;background-clip:text !important;-webkit-text-fill-color:transparent !important;filter:drop-shadow(0 0 10px #ffaa0088);}
+body.duck-yellow .header{background:transparent;}
+body.duck-yellow::before{background-image:
+  radial-gradient(2px 2px at 10% 20%,rgba(255,220,0,.6) 0%,transparent 100%),
+  radial-gradient(2px 2px at 30% 70%,rgba(255,200,0,.5) 0%,transparent 100%),
+  radial-gradient(2px 2px at 60% 15%,rgba(255,220,0,.6) 0%,transparent 100%),
+  radial-gradient(2px 2px at 80% 50%,rgba(255,200,0,.4) 0%,transparent 100%),
+  radial-gradient(2px 2px at 45% 90%,rgba(255,210,0,.5) 0%,transparent 100%),
+  radial-gradient(60px 60px at 15% 40%,rgba(255,200,0,.04) 0%,transparent 100%),
+  radial-gradient(60px 60px at 75% 25%,rgba(255,200,0,.04) 0%,transparent 100%),
+  radial-gradient(60px 60px at 50% 75%,rgba(255,200,0,.04) 0%,transparent 100%) !important;}
+body.duck-yellow .panel{background:transparent;}
+body.duck-yellow .result-box{background:#120e00 !important;}
+body.duck-yellow .roll-btn{background:linear-gradient(135deg,#ffee00,#ff8800) !important;}
+
+/* BEACH SCREEN */
+body.beach-screen{background:#1a3a4a !important;}
+body.beach-screen .shell{background:#2a1f0e !important;border-color:#c8a04655 !important;box-shadow:0 0 40px #00aaff22;}
+body.beach-screen h1{background:linear-gradient(135deg,#ffd700,#ff8c00,#c8a046) !important;-webkit-background-clip:text !important;background-clip:text !important;-webkit-text-fill-color:transparent !important;filter:drop-shadow(0 0 10px #c8a04688);}
+body.beach-screen .result-box{background:#1a1200 !important;border-color:#c8a04644 !important;}
+body.beach-screen .roll-btn{background:linear-gradient(135deg,#c8a046,#ff8c00) !important;color:#0a0a12 !important;}
+body.beach-screen .panel{background:transparent;}
+body.beach-screen .tab.active{border-color:#c8a04666 !important;color:#c8a046 !important;}
+/* Animated beach canvas sits behind the shell */
+#beachCanvas{display:none;position:fixed;inset:0;z-index:0;pointer-events:none;}
+body.beach-screen #beachCanvas{display:block;}
+
+/* SHOP */
+.shop-bal{display:flex;align-items:center;gap:10px;background:var(--p2);border:1px solid var(--border);border-radius:12px;padding:9px 14px;margin-bottom:14px;}
+.sbal-icon{font-size:1.4rem;}
+.sbal-lbl{font-size:.58rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--sub);}
+.sbal-val{font-family:'Bangers','Impact','Arial Black',cursive;font-size:1.4rem;letter-spacing:1px;color:#ffcc00;}
+.ssec{font-size:.6rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--sub);margin:4px 0 8px;}
+.ssec-note{font-size:.52rem;color:var(--sub);font-weight:700;letter-spacing:1px;text-transform:none;}
+.sgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:14px;}
+.scard{background:var(--p2);border:1px solid #1a1a2e;border-radius:12px;padding:26px 10px 10px;display:flex;flex-direction:column;align-items:center;gap:4px;transition:border-color .2s,transform .15s,opacity .2s;position:relative;overflow:hidden;}
+.scard:hover:not(.sdisabled){transform:translateY(-2px);}
+.scard.sdisabled{opacity:.42;cursor:not-allowed;}
+.scard-icon{font-size:1.65rem;line-height:1;}
+.scard-name{font-weight:800;font-size:.78rem;text-align:center;}
+.scard-desc{font-size:.58rem;color:var(--sub);text-align:center;line-height:1.3;}
+.scard-price{font-family:'Bangers','Impact','Arial Black',cursive;font-size:.9rem;letter-spacing:1px;color:#ffcc00;margin-top:1px;}
+.tp-tag{position:absolute;top:6px;left:7px;font-size:.5rem;font-weight:900;letter-spacing:1.5px;padding:2px 6px;border-radius:5px;text-transform:uppercase;z-index:2;}
+.tp-t{background:rgba(255,140,0,.18);color:#ffaa44;border:1px solid rgba(255,140,0,.3);}
+.tp-p{background:rgba(85,221,85,.14);color:#55dd88;border:1px solid rgba(85,221,85,.25);}
+.owned-tag{position:absolute;top:6px;right:7px;font-size:.48rem;font-weight:900;background:rgba(85,221,85,.14);color:#55dd55;padding:2px 6px;border-radius:5px;border:1px solid rgba(85,221,85,.25);z-index:2;}
+.stack-tag{position:absolute;top:6px;right:7px;font-size:.48rem;font-weight:900;background:rgba(180,140,255,.14);color:#cc88ff;padding:2px 6px;border-radius:5px;border:1px solid rgba(180,140,255,.25);z-index:2;}
+.bbtn{width:100%;padding:7px;font-family:'Bangers','Impact','Arial Black',cursive;font-size:.85rem;letter-spacing:1.5px;border:none;border-radius:8px;cursor:pointer;margin-top:2px;transition:transform .1s,opacity .15s;}
+.bbtn:active{transform:scale(.97);}
+.bbtn:disabled{opacity:.35;cursor:not-allowed;}
+.gold{background:linear-gradient(135deg,#ffe066,#ffaa00);color:#0a0a12;}
+.green{background:linear-gradient(135deg,#55dd55,#22aa44);color:#0a0a12;}
+.purple{background:linear-gradient(135deg,#cc44ff,#8822cc);color:#fff;}
+.red{background:linear-gradient(135deg,#ff5544,#cc2200);color:#fff;}
+.blue{background:linear-gradient(135deg,#44aaff,#2266cc);color:#fff;}
+.cyan{background:linear-gradient(135deg,#00ffcc,#0099aa);color:#0a0a12;}
+.pink{background:linear-gradient(135deg,#ff88cc,#cc2288);color:#fff;}
+.white{background:linear-gradient(135deg,#e8e8ff,#aaaacc);color:#0a0a12;}
+.orange{background:linear-gradient(135deg,#ffaa44,#cc6600);color:#0a0a12;}
+.teal{background:linear-gradient(135deg,#44ffdd,#0088aa);color:#0a0a12;}
+
+/* ═══════ GLOVES SHOP ═══════ */
+.glove-intro{background:linear-gradient(135deg,#0d0d1a,#12001a);border:1px solid #3a1a5a;border-radius:12px;padding:12px 14px;margin-bottom:14px;text-align:center;}
+.glove-intro-title{font-family:'Bangers','Impact','Arial Black',cursive;font-size:1.3rem;letter-spacing:2px;background:linear-gradient(135deg,#cc44ff,#ff88ff,#44aaff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:3px;}
+.glove-intro-sub{font-size:.62rem;color:var(--sub);font-weight:700;letter-spacing:1px;}
+.glove-equipped{font-size:.68rem;font-weight:800;color:#22aaff;margin-top:6px;}
+
+.gcollection{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px;}
+.gcollect-tag{font-size:.62rem;font-weight:800;padding:3px 9px;border-radius:99px;background:var(--p2);border:1px solid currentColor;opacity:.5;}
+.gcollect-tag.owned{opacity:1;}
+
+.gcard{background:var(--p2);border:2px solid #1a1a2e;border-radius:14px;padding:16px 14px 12px;margin-bottom:10px;position:relative;overflow:hidden;transition:border-color .25s,transform .15s;}
+.gcard:hover:not(.glocked){transform:translateY(-2px);}
+.gcard.glocked{opacity:.55;}
+.gcard.gequipped{border-color:currentColor;}
+.gcard-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.gcard-icon{font-size:2.2rem;line-height:1;filter:drop-shadow(0 0 8px currentColor);}
+.gcard-info{flex:1;}
+.gcard-name{font-family:'Bangers','Impact','Arial Black',cursive;font-size:1.15rem;letter-spacing:1.5px;}
+.gcard-tier{font-size:.58rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;opacity:.7;}
+.gcard-bonus{font-size:.65rem;font-weight:800;color:#55dd55;margin-bottom:6px;line-height:1.5;}
+.gcard-reqs{font-size:.6rem;font-weight:800;color:var(--sub);margin-bottom:8px;}
+.req-item{display:inline-flex;align-items:center;gap:3px;margin-right:6px;}
+.req-item.met{color:#55dd55;}
+.req-item.unmet{color:#ff6644;}
+.gcard-btns{display:flex;gap:6px;}
+.gbtn{flex:1;padding:7px;font-family:'Bangers','Impact','Arial Black',cursive;font-size:.82rem;letter-spacing:1px;border:none;border-radius:8px;cursor:pointer;transition:transform .1s,opacity .15s;}
+.gbtn:active{transform:scale(.97);}
+.gbtn:disabled{opacity:.35;cursor:not-allowed;}
+.gbtn-equip{background:linear-gradient(135deg,#44aaff,#2266cc);color:#fff;}
+.gbtn-unequip{background:linear-gradient(135deg,#555566,#333344);color:#aaa;}
+.equipped-badge{position:absolute;top:8px;right:10px;font-size:.52rem;font-weight:900;background:rgba(34,170,255,.18);color:#22aaff;padding:2px 7px;border-radius:5px;border:1px solid rgba(34,170,255,.35);letter-spacing:1px;}
+.locked-badge{position:absolute;top:8px;right:10px;font-size:.52rem;font-weight:900;background:rgba(255,100,68,.12);color:#ff6644;padding:2px 7px;border-radius:5px;border:1px solid rgba(255,100,68,.3);letter-spacing:1px;}
+
+/* toast */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(14px);background:#1e1e30;border:1px solid var(--border);padding:8px 18px;border-radius:10px;font-weight:800;font-size:.8rem;opacity:0;pointer-events:none;transition:opacity .22s,transform .22s;z-index:9999;white-space:nowrap;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* CUTSCENE */
+.cutscene{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;transition:opacity .35s;}
+.cutscene.active{opacity:1;pointer-events:all;}
+.cs-bg{position:absolute;inset:0;background:rgba(0,0,0,.93);backdrop-filter:blur(8px);}
+.cs-fw{position:absolute;inset:0;pointer-events:none;}
+.cs-box{position:relative;z-index:1;text-align:center;padding:20px;animation:csIn .5s cubic-bezier(.175,.885,.32,1.275) both;}
+@keyframes csIn{0%{transform:scale(.35) translateY(50px);opacity:0}100%{transform:scale(1) translateY(0);opacity:1}}
+.cs-pre{font-family:'Bangers','Impact','Arial Black',cursive;font-size:.9rem;letter-spacing:4px;color:var(--sub);margin-bottom:6px;}
+.cs-num{font-family:'Bangers','Impact','Arial Black',cursive;font-size:6rem;letter-spacing:4px;line-height:1;background:linear-gradient(135deg,#ffe066,#ffaa00,#ff88ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:nPulse 1s ease infinite alternate;}
+@keyframes nPulse{0%{filter:drop-shadow(0 0 12px rgba(255,200,0,.4))}100%{filter:drop-shadow(0 0 45px rgba(255,200,0,.95))}}
+.cs-sub{font-family:'Bangers','Impact','Arial Black',cursive;font-size:1.9rem;letter-spacing:2px;color:#fff;margin-bottom:4px;}
+.cs-desc{font-size:.8rem;font-weight:700;color:var(--sub);margin-bottom:18px;}
+.cs-reward{font-family:'Bangers','Impact','Arial Black',cursive;font-size:1.25rem;color:#ffcc00;margin-bottom:16px;animation:nPulse 1s ease infinite alternate;}
+.cs-spin{font-size:2rem;display:inline-block;animation:cspin 1.2s linear infinite;margin-bottom:14px;}
+@keyframes cspin{to{transform:rotate(360deg)}}
+.cs-btn{font-family:'Bangers','Impact','Arial Black',cursive;font-size:1.15rem;letter-spacing:2px;padding:11px 36px;background:linear-gradient(135deg,#ffe066,#ffaa00);color:#0a0a12;border:none;border-radius:12px;cursor:pointer;box-shadow:0 4px 24px rgba(255,180,0,.4);transition:transform .1s;}
+.cs-btn:hover{transform:scale(1.06);}
+
+#particles{position:fixed;inset:0;pointer-events:none;z-index:999;}
+
+/* BREAK LETTER */
+.letter-overlay{position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.97);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);}
+.letter-box{width:380px;max-width:88vw;background:#0d0d1a;border:1px solid #2a2a40;border-radius:20px;padding:24px 28px 22px;text-align:center;animation:csIn .6s cubic-bezier(.175,.885,.32,1.275) both;}
+.letter-sun{font-size:2.4rem;display:block;margin-bottom:10px;animation:cspin 8s linear infinite;}
+.letter-title{font-family:'Bangers','Impact','Arial Black',cursive;font-size:1.3rem;letter-spacing:3px;background:linear-gradient(135deg,#ffe066,#aaeeff,#ff88ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:12px;}
+.letter-body{font-size:.82rem;font-weight:700;color:#9999bb;line-height:1.8;margin-bottom:16px;text-align:center;}
+.letter-body b{color:#e8e8ff;}
+.letter-sig{font-size:.7rem;font-weight:800;color:#6666aa;letter-spacing:1px;margin-bottom:18px;}
+.letter-btn{font-family:'Bangers','Impact','Arial Black',cursive;font-size:1.1rem;letter-spacing:2px;padding:11px 36px;background:linear-gradient(135deg,#ffe066,#ffaa00);color:#0a0a12;border:none;border-radius:12px;cursor:pointer;box-shadow:0 4px 20px rgba(255,180,0,.35);transition:transform .1s;}
+.letter-btn:hover{transform:scale(1.05);}
+
+/* AUTH SCREEN */
+.auth-overlay{position:fixed;inset:0;z-index:99999;background:#0a0a12;display:flex;align-items:center;justify-content:center;}
+.auth-box{width:380px;max-width:92vw;background:#0d0d1a;border:1px solid #2a2a40;border-radius:20px;padding:32px 28px;text-align:center;}
+.auth-logo{font-family:'Bangers','Impact',cursive;font-size:2rem;letter-spacing:3px;background:linear-gradient(135deg,#ffe066,#ff88ff,#66aaff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px;}
+.auth-sub{font-size:.62rem;font-weight:800;color:var(--sub);letter-spacing:2px;margin-bottom:24px;}
+.auth-tabs{display:flex;gap:0;margin-bottom:20px;border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.auth-tab{flex:1;padding:9px;font-family:'Bangers','Impact',cursive;font-size:.95rem;letter-spacing:1px;border:none;background:none;color:var(--sub);cursor:pointer;transition:background .2s,color .2s;}
+.auth-tab.active{background:#1a1a2e;color:var(--text);}
+.auth-input{width:100%;padding:11px 14px;background:#0a0a18;border:1.5px solid #2a2a40;border-radius:10px;color:var(--text);font-family:'Nunito',system-ui,sans-serif;font-size:.88rem;font-weight:700;outline:none;margin-bottom:10px;transition:border-color .2s;}
+.auth-input:focus{border-color:#ffe06677;}
+.auth-btn{width:100%;padding:12px;font-family:'Bangers','Impact',cursive;font-size:1.2rem;letter-spacing:2px;background:linear-gradient(135deg,#ffe066,#ffaa00);color:#0a0a12;border:none;border-radius:10px;cursor:pointer;margin-top:4px;transition:transform .1s,opacity .2s;}
+.auth-btn:hover{transform:translateY(-1px);}
+.auth-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+.auth-err{font-size:.68rem;font-weight:800;color:#ff6644;min-height:16px;margin-top:8px;}
+.auth-ok{font-size:.68rem;font-weight:800;color:#55dd88;min-height:16px;margin-top:8px;}
+.auth-user-bar{display:flex;align-items:center;justify-content:space-between;background:#0d0d1a;border-bottom:1px solid var(--border);padding:6px 16px;font-size:.62rem;font-weight:800;}
+.auth-user-name{color:#ffe066;letter-spacing:1px;}
+.auth-signout{background:none;border:1px solid #2a2a40;border-radius:6px;color:var(--sub);font-size:.55rem;font-weight:800;padding:3px 8px;cursor:pointer;letter-spacing:1px;transition:border-color .2s;}
+.auth-signout:hover{border-color:#ff664488;color:#ff6644;}
+</style>
+</head>
+<body>
+
+<!-- AUTH SCREEN -->
+<div class="auth-overlay" id="authOverlay">
+  <div class="auth-box">
+    <div class="auth-logo">⚔ STAT ROLLER</div>
+    <div class="auth-sub">v1.6.0 · 🦆 Ducky Event</div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="authTabLogin" onclick="switchAuthTab('login')">LOG IN</button>
+      <button class="auth-tab" id="authTabSignup" onclick="switchAuthTab('signup')">SIGN UP</button>
+    </div>
+    <input class="auth-input" id="authEmail" type="email" placeholder="📧 Email" autocomplete="email">
+    <input class="auth-input" id="authPass" type="password" placeholder="🔒 Password" autocomplete="current-password">
+    <input class="auth-input" id="authName" type="text" placeholder="🎮 Display Name" maxlength="20" style="display:none" autocomplete="off">
+    <button class="auth-btn" id="authSubmitBtn" onclick="authSubmit()">LOG IN ⚔️</button>
+    <div class="auth-err" id="authErr"></div>
+    <div class="auth-ok" id="authOk"></div>
+    <div style="margin-top:14px;font-size:.58rem;color:#444466;font-weight:700;">Your progress saves to your account automatically ☁️</div>
+    <div style="margin-top:8px;background:#1a0a0a;border:1px solid #ff444433;border-radius:8px;padding:8px 10px;font-size:.56rem;font-weight:800;color:#ff8866;line-height:1.5;">
+      ⚠️ <b>DO NOT open two tabs at the same time while logged in.</b> Both tabs save automatically and the one with LESS progress will overwrite the one with MORE. Close all other tabs before playing.
+    </div>
+    <div style="height:1px;background:#1a1a2e;margin:14px 0;"></div>
+    <button onclick="playAsGuest()" style="width:100%;padding:10px;background:transparent;border:1px solid #2a2a40;border-radius:10px;color:#6666aa;font-family:'Bangers','Impact',cursive;font-size:1rem;letter-spacing:1.5px;cursor:pointer;transition:border-color .2s;margin-bottom:8px;" onmouseover="this.style.borderColor='#ff664488'" onmouseout="this.style.borderColor='#2a2a40'">
+      👤 PLAY AS GUEST
+    </button>
+    <div style="font-size:.58rem;font-weight:900;color:#ff6644;text-align:center;letter-spacing:.5px;">⚠️ WARNING: USING A GUEST ACCOUNT DOESN'T SAVE YOUR DATA!</div>
+  </div>
+</div>
+
+<canvas id="particles"></canvas>
+
+<div class="cutscene" id="cutscene">
+  <div class="cs-bg" onclick="closeCutscene()"></div>
+  <canvas class="cs-fw" id="fwCvs"></canvas>
+  <div class="cs-box">
+    <div class="cs-pre">🏆 MILESTONE REACHED</div>
+    <div class="cs-num" id="csNum">1,000</div>
+    <div class="cs-sub" id="csSub">COINS!</div>
+    <div class="cs-desc" id="csDesc">You're just getting started!</div>
+    <div class="cs-reward" id="csReward">🎁 +500 Bonus Coins!</div>
+    <div class="cs-spin">🪙</div><br>
+    <button class="cs-btn" onclick="closeCutscene()">CLAIM &amp; CONTINUE 🎲</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="shell">
+  <div id="userBar" class="auth-user-bar" style="display:none">
+    <span>👤 <span class="auth-user-name" id="userBarName"></span></span>
+    <button class="auth-signout" onclick="doSignOut()">SIGN OUT</button>
+  </div>
+  <div class="header">
+    <h1>⚔ STAT ROLLER</h1>
+    <p class="subtitle">v1.6.0 · Your fate awaits · 🏴‍☠️ Pirate Event</p>
+  </div>
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('roll',this)">🎲 Roll</button>
+    <button class="tab" onclick="switchTab('index',this)">📖 Index</button>
+    <button class="tab" onclick="switchTab('shop',this)">🛒 Shop</button>
+    <button class="tab" onclick="switchTab('gloves',this)">🧤 Gloves</button>
+    <button class="tab" onclick="switchTab('lb',this)">🏆 Board</button>
+  </div>
+
+  <!-- ══ ROLL ══ -->
+  <div class="panel active" id="tab-roll">
+    <div class="top-bar">
+      <div class="pill"><span class="pill-lbl">Next 🏆</span><span class="pill-val mv" id="nextMs">1,000</span></div>
+      <div class="pill"><span class="pill-lbl">🪙</span><span class="pill-val cv" id="coinsDisp">0</span></div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+      <div class="active-glove" id="activeGloveBar" style="margin:0;flex:1">No glove equipped</div>
+    </div>
+    <div class="result-box" id="resultBox">
+      <span class="rph" id="rph">— WAITING —</span>
+      <span class="rlabel" id="rlabel" style="display:none"></span>
+      <span class="rodds"  id="rodds"  style="display:none"></span>
+      <span class="rbonus" id="rbonus" style="display:none"></span>
+    </div>
+    <div class="buff-bar" id="buffBar"></div>
+    <div id="oracleHint" style="display:none;text-align:center;font-family:'Bangers','Impact',cursive;font-size:.95rem;letter-spacing:2px;color:#aaeeff;background:linear-gradient(135deg,#0a1a2e,#0d0d1a);border:1px solid #aaeeff33;border-radius:10px;padding:8px 12px;margin-bottom:10px;animation:nPulse 1s ease infinite alternate;">🔮 <span id="oracleHintText"></span></div>
+    <div style="display:flex;gap:6px;margin-bottom:12px;">
+      <button class="roll-btn" id="rollBtn" onclick="doRoll()" style="margin:0;flex:1">🎲 ROLL!</button>
+      <button onclick="openInventory()" style="padding:0 14px;background:var(--p2);border:1px solid #ffcc0044;border-radius:12px;color:#ffcc00;font-family:'Bangers','Impact',cursive;font-size:.95rem;letter-spacing:1px;cursor:pointer;white-space:nowrap;transition:border-color .2s;" onmouseover="this.style.borderColor='#ffcc0088'" onmouseout="this.style.borderColor='#ffcc0044'">🎒 Inv</button>
+    </div>
+    <!-- ITEM ROLL BUTTONS — hidden until requirements met, no hints given -->
+    <button id="itemRollLucky" onclick="doItemRoll('lucky')" style="display:none;width:100%;margin-bottom:8px;padding:12px;font-family:'Bangers','Impact',cursive;font-size:1.1rem;letter-spacing:2px;background:linear-gradient(135deg,#1a3a00,#0d1a00);color:#88ff44;border:1px solid #88ff4466;border-radius:12px;cursor:pointer;animation:nPulse 1.5s ease infinite alternate;">🍀 LUCKY POT</button>
+    <button id="itemRollDiablo" onclick="doItemRoll('diablo')" style="display:none;width:100%;margin-bottom:8px;padding:12px;font-family:'Bangers','Impact',cursive;font-size:1.1rem;letter-spacing:2px;background:linear-gradient(135deg,#2a0000,#1a0000);color:#ff2244;border:1px solid #ff224466;border-radius:12px;cursor:pointer;animation:nPulse 1s ease infinite alternate;">😈 DIABLO VOID</button>
+    <div id="duckQuoteBar" style="display:none;background:linear-gradient(135deg,#1a1500,#0d0d1a);border:1px solid #ffcc0033;border-radius:10px;padding:8px 12px;margin-bottom:10px;font-size:.72rem;font-weight:800;color:#ffdd44;text-align:center;letter-spacing:.5px;min-height:32px;"></div>
+    <div class="slbl">Recent Rolls</div>
+    <div class="history" id="history"></div>
+  </div>
+
+  <!-- ══ INDEX ══ -->
+  <div class="panel" id="tab-index">
+    <input class="idx-search" placeholder="🔍  Search rarities…" oninput="filterIdx(this.value)">
+    <div id="rarityGrid"></div>
+
+    <div style="height:1px;background:var(--border);margin:18px 0"></div>
+    <div style="font-family:'Bangers','Impact',cursive;font-size:1.2rem;letter-spacing:2px;color:#ffe066;margin-bottom:14px;">⚙️ AUTO ROLL</div>
+
+    <div style="background:var(--p2);border:1px solid #2a2a40;border-radius:14px;padding:14px;margin-bottom:10px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <div>
+          <div style="font-family:'Bangers','Impact',cursive;font-size:1rem;letter-spacing:1.5px;color:#aaaaff">🔄 AUTO ROLL</div>
+          <div style="font-size:.6rem;color:var(--sub);font-weight:800;">Rolls every 3 seconds · Not efficient</div>
+        </div>
+        <span id="autoRollBadge" style="font-size:.6rem;font-weight:900;padding:2px 8px;border-radius:6px;background:#2a2a40;color:#6666aa;">OFF</span>
+      </div>
+      <div style="font-size:.58rem;color:#444466;font-weight:800;margin-bottom:8px;">🔒 Buy from Shop · 🪙 250,000</div>
+      <button id="autoRollToggle" onclick="toggleAutoRoll()" style="width:100%;padding:8px;font-family:'Bangers','Impact',cursive;font-size:.9rem;letter-spacing:2px;background:linear-gradient(135deg,#3a3a55,#2a2a40);color:#6666aa;border:1px solid #3a3a55;border-radius:10px;cursor:pointer;" disabled>ENABLE AUTO ROLL</button>
+    </div>
+
+    <div style="background:var(--p2);border:1px solid #2a2a40;border-radius:14px;padding:14px;margin-bottom:10px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <div>
+          <div style="font-family:'Bangers','Impact',cursive;font-size:1rem;letter-spacing:1.5px;color:#ffcc00">⚡ QUICK ROLL</div>
+          <div style="font-size:.6rem;color:var(--sub);font-weight:800;">Instant rolls · Cannot stack with Auto Roll</div>
+        </div>
+        <span id="quickRollBadge" style="font-size:.6rem;font-weight:900;padding:2px 8px;border-radius:6px;background:#2a2a40;color:#6666aa;">OFF</span>
+      </div>
+      <div style="font-size:.58rem;color:#444466;font-weight:800;margin-bottom:8px;">🔒 Buy from Shop · 🪙 1,000,000</div>
+      <button id="quickRollToggle" onclick="toggleQuickRoll()" style="width:100%;padding:8px;font-family:'Bangers','Impact',cursive;font-size:.9rem;letter-spacing:2px;background:linear-gradient(135deg,#3a3a55,#2a2a40);color:#6666aa;border:1px solid #3a3a55;border-radius:10px;cursor:pointer;" disabled>ENABLE QUICK ROLL</button>
+    </div>
+
+    <div style="background:var(--p2);border:1px solid #2a2a40;border-radius:14px;padding:14px;margin-bottom:10px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <div>
+          <div style="font-family:'Bangers','Impact',cursive;font-size:1rem;letter-spacing:1.5px;color:#ff8800">🚀 EFFICIENT ROLL</div>
+          <div style="font-size:.6rem;color:var(--sub);font-weight:800;">Auto rolls at Frenzy speed · The real deal</div>
+        </div>
+        <span id="efficientRollBadge" style="font-size:.6rem;font-weight:900;padding:2px 8px;border-radius:6px;background:#2a2a40;color:#6666aa;">OFF</span>
+      </div>
+      <div style="font-size:.58rem;color:#444466;font-weight:800;margin-bottom:8px;">🔒 Buy from Shop · 🪙 5,000,000</div>
+      <button id="efficientRollToggle" onclick="toggleEfficientRoll()" style="width:100%;padding:8px;font-family:'Bangers','Impact',cursive;font-size:.9rem;letter-spacing:2px;background:linear-gradient(135deg,#3a3a55,#2a2a40);color:#6666aa;border:1px solid #3a3a55;border-radius:10px;cursor:pointer;" disabled>ENABLE EFFICIENT ROLL</button>
+    </div>
+    <div style="font-size:.58rem;color:#444466;font-weight:800;text-align:center;">⚠️ Auto Roll stops when you switch tabs or close the game.</div>
+  </div>
+
+  <!-- ══ SHOP ══ -->
+  <div class="panel" id="tab-shop">
+    <div class="shop-bal">
+      <span class="sbal-icon">🪙</span>
+      <div><div class="sbal-lbl">Balance</div><div class="sbal-val" id="shopCoins">0</div></div>
+    </div>
+
+    <div class="ssec">⚡ Power-Ups <span class="ssec-note">(T = uses up · P = forever)</span></div>
+    <div class="sgrid">
+      <div class="scard" id="sc-reroll" style="border-color:#cc44ff33">
+        <span class="tp-tag tp-t">T</span>
+        <div class="scard-icon">🔄</div><div class="scard-name" style="color:#cc44ff">Re-Roll</div>
+        <div class="scard-desc">Roll again, keep the rarer result</div>
+        <div class="scard-price">🪙 80</div>
+        <button class="bbtn purple" onclick="buy('reroll',80)">BUY</button>
+      </div>
+      <div class="scard" id="sc-luck" style="border-color:#ffcc0033">
+        <span class="tp-tag tp-t">T</span>
+        <div class="scard-icon">🍀</div><div class="scard-name" style="color:#ffcc00">Lucky Roll</div>
+        <div class="scard-desc">Skips Common &amp; Uncommon once</div>
+        <div class="scard-price">🪙 200</div>
+        <button class="bbtn gold" onclick="buy('luck',200)">BUY</button>
+      </div>
+      <div class="scard" id="sc-double" style="border-color:#4488ff33">
+        <span class="tp-tag tp-t">T</span>
+        <div class="scard-icon">✌️</div><div class="scard-name" style="color:#4488ff">Double Roll</div>
+        <div class="scard-desc">Roll twice, keep the rarer result</div>
+        <div class="scard-price">🪙 350</div>
+        <button class="bbtn blue" onclick="buy('double',350)">BUY</button>
+      </div>
+      <div class="scard" id="sc-streak" style="border-color:#ff662233">
+        <span class="tp-tag tp-t">T</span>
+        <div class="scard-icon">🔥</div><div class="scard-name" style="color:#ff6622">Streak Boost</div>
+        <div class="scard-desc">1.5× coins for next 5 rolls</div>
+        <div class="scard-price">🪙 400</div>
+        <button class="bbtn red" onclick="buy('streak',400)">BUY</button>
+      </div>
+      <div class="scard" id="sc-magnet" style="border-color:#ffd70033">
+        <span class="tp-tag tp-t">T</span>
+        <div class="scard-icon">🧲</div><div class="scard-name" style="color:#ffd700">Coin Magnet</div>
+        <div class="scard-desc">+80 bonus on next 5 money rolls</div>
+        <div class="scard-price">🪙 120</div>
+        <button class="bbtn gold" onclick="buy('magnet',120)">BUY</button>
+      </div>
+      <div class="scard" id="sc-guarantee" style="border-color:#00ffaa33">
+        <span class="tp-tag tp-t">T</span>
+        <div class="scard-icon">🎯</div><div class="scard-name" style="color:#00ffaa">Rare+ Guarantee</div>
+        <div class="scard-desc">Next roll is Rare or better</div>
+        <div class="scard-price">🪙 500</div>
+        <button class="bbtn cyan" onclick="buy('guarantee',500)">BUY</button>
+      </div>
+      <div class="scard" id="sc-autoroll" style="border-color:#aaeeff33">
+        <span class="tp-tag tp-t">T</span>
+        <div class="scard-icon">⚡</div><div class="scard-name" style="color:#aaeeff">Auto-Roll ×5</div>
+        <div class="scard-desc">Auto-rolls 5 times back-to-back</div>
+        <div class="scard-price">🪙 300</div>
+        <button class="bbtn blue" onclick="buy('autoroll',300)">BUY</button>
+      </div>
+      <div class="scard" id="sc-shield" style="border-color:#ffffff22">
+        <span class="tp-tag tp-t">T</span>
+        <div class="scard-icon">🛡️</div><div class="scard-name" style="color:#e8e8ff">Pity Shield</div>
+        <div class="scard-desc">If next roll is Common, refund half</div>
+        <div class="scard-price">🪙 60</div>
+        <button class="bbtn white" onclick="buy('shield',60)">BUY</button>
+      </div>
+      <div class="scard" id="sc-bomb" style="border-color:#ff444433">
+        <span class="tp-tag tp-t">T</span>
+        <div class="scard-icon">💣</div><div class="scard-name" style="color:#ff4444">Bomb Roll</div>
+        <div class="scard-desc">Force-roll 3 times, best result wins</div>
+        <div class="scard-price">🪙 600</div>
+        <button class="bbtn red" onclick="buy('bomb',600)">BUY</button>
+      </div>
+      <div class="scard" id="sc-frenzy" style="border-color:#ff88ff33">
+        <span class="tp-tag tp-t">T</span>
+        <div class="scard-icon">🌀</div><div class="scard-name" style="color:#ff88ff">Frenzy</div>
+        <div class="scard-desc">Auto-roll 10 times at 2× speed</div>
+        <div class="scard-price">🪙 900</div>
+        <button class="bbtn pink" onclick="buy('frenzy',900)">BUY</button>
+      </div>
+      <div class="scard" id="sc-vault" style="border-color:#55dd5533">
+        <span class="tp-tag tp-p">P</span>
+        <div class="scard-icon">🏦</div><div class="scard-name" style="color:#55dd55">Coin Vault</div>
+        <div class="scard-desc">+8 base coins every single roll</div>
+        <div class="scard-price">🪙 1,500</div>
+        <button class="bbtn green" onclick="buy('vault',1500)">BUY</button>
+      </div>
+      <div class="scard" id="sc-greed" style="border-color:#ffcc0044">
+        <span class="tp-tag tp-p">P</span>
+        <div class="scard-icon">💰</div><div class="scard-name" style="color:#ffcc00">Greed Perk</div>
+        <div class="scard-desc">Money-type rolls give 2× bonus</div>
+        <div class="scard-price">🪙 2,000</div>
+        <button class="bbtn gold" onclick="buy('greed',2000)">BUY</button>
+      </div>
+      <div class="scard" id="sc-legend" style="border-color:#ff88ff44">
+        <span class="tp-tag tp-p">P</span>
+        <div class="scard-icon">👑</div><div class="scard-name" style="color:#ff88ff">Legend Status</div>
+        <div class="scard-desc">+25% coins from ALL rolls forever</div>
+        <div class="scard-price">🪙 5,000</div>
+        <button class="bbtn pink" onclick="buy('legend',5000)">BUY</button>
+      </div>
+      <div class="scard" id="sc-oracle" style="border-color:#aaeeff44">
+        <span class="tp-tag tp-p">P</span>
+        <div class="scard-icon">🔮</div><div class="scard-name" style="color:#aaeeff">Oracle Eye</div>
+        <div class="scard-desc">50/50 chance to hint what you're about to roll. Disabled with Quick Roll.</div>
+        <div class="scard-price">🪙 75,000</div>
+        <button class="bbtn blue" onclick="buy('oracle',75000)">BUY</button>
+      </div>
+      <div class="scard" id="sc-hoarder" style="border-color:#d4af3744">
+        <span class="tp-tag tp-p">P</span>
+        <div class="scard-icon">🏺</div><div class="scard-name" style="color:#d4af37">Hoarder</div>
+        <div class="scard-desc">Rare+ rolls earn +50% extra coins</div>
+        <div class="scard-price">🪙 3,500</div>
+        <button class="bbtn orange" onclick="buy('hoarder',3500)">BUY</button>
+      </div>
+      <div class="scard" id="sc-divine" style="border-color:#ffffff33">
+        <span class="tp-tag tp-p">P</span>
+        <div class="scard-icon">✝️</div><div class="scard-name" style="color:#ffffff">Divine Luck</div>
+        <div class="scard-desc">Secret rarities earn 2× coins</div>
+        <div class="scard-price">🪙 10,000</div>
+        <button class="bbtn white" onclick="buy('divine',10000)">BUY</button>
+      </div>
+      <div class="scard" id="sc-solarite" style="border-color:#ffdd4444">
+        <span class="tp-tag tp-t">T</span>
+        <div class="scard-icon">☀️</div><div class="scard-name" style="color:#ffdd44">Solarite Boost</div>
+        <div class="scard-desc">All SU rarities give 3× coins for 8 rolls</div>
+        <div class="scard-price">🪙 750</div>
+        <button class="bbtn gold" onclick="buy('solarite',750)">BUY</button>
+      </div>
+      <div class="scard" id="sc-riftpull" style="border-color:#ff00ff33">
+        <span class="tp-tag tp-t">T</span>
+        <div class="scard-icon">🌀</div><div class="scard-name" style="color:#ff00ff">Rift Pull</div>
+        <div class="scard-desc">Next roll is forced from SU pool only</div>
+        <div class="scard-price">🪙 1,200</div>
+        <button class="bbtn purple" onclick="buy('riftpull',1200)">BUY</button>
+      </div>
+      <div class="scard" id="sc-solbond" style="border-color:#ffcc0044">
+        <span class="tp-tag tp-p">P</span>
+        <div class="scard-icon">🔗</div><div class="scard-name" style="color:#ffcc00">Sol Bond</div>
+        <div class="scard-desc">Every 25 rolls: free Lucky Roll</div>
+        <div class="scard-price">🪙 4,000</div>
+        <button class="bbtn gold" onclick="buy('solbond',4000)">BUY</button>
+      </div>
+      <div class="scard" id="sc-sunforge" style="border-color:#ff884433">
+        <span class="tp-tag tp-p">P</span>
+        <div class="scard-icon">⚒️</div><div class="scard-name" style="color:#ff8844">Sun Forge</div>
+        <div class="scard-desc">Mutated SU rarities give 4× coins forever</div>
+        <div class="scard-price">🪙 7,500</div>
+        <button class="bbtn orange" onclick="buy('sunforge',7500)">BUY</button>
+      </div>
+      <div class="scard" id="sc-momentum" style="border-color:#aaeeff44">
+        <span class="tp-tag tp-p">P</span>
+        <div class="scard-icon">🚀</div><div class="scard-name" style="color:#aaeeff">Momentum</div>
+        <div class="scard-desc">Every 10 rolls without Common: +2% coin bonus stacks (max 40%)</div>
+        <div class="scard-price">🪙 6,000</div>
+        <button class="bbtn blue" onclick="buy('momentum',6000)">BUY</button>
+      </div>
+      <div class="scard" id="sc-duckcharm" style="border-color:#ffdd4444">
+        <span class="tp-tag tp-p">P</span>
+        <div class="scard-icon">🦆</div><div class="scard-name" style="color:#ffdd44">Duck Charm</div>
+        <div class="scard-desc">Common rolls give +15 coins instead of nothing</div>
+        <div class="scard-price">🪙 1,800</div>
+        <button class="bbtn gold" onclick="buy('duckcharm',1800)">BUY</button>
+      </div>
+      <div class="scard" id="sc-stardrive" style="border-color:#cc99ff44">
+        <span class="tp-tag tp-p">P</span>
+        <div class="scard-icon">🌟</div><div class="scard-name" style="color:#cc99ff">Star Drive</div>
+        <div class="scard-desc">Secret rarities always trigger particle explosion + 10% more coins</div>
+        <div class="scard-price">🪙 8,500</div>
+        <button class="bbtn purple" onclick="buy('stardrive',8500)">BUY</button>
+      </div>
+    </div>
+
+    <div class="ssec">🆕 v1.6.0 — Luck &amp; More <span class="ssec-note">(new!)</span></div>
+    <div class="sgrid">
+      <div class="scard" id="sc-luckstorm" style="border-color:#ffcc0033">
+        <span class="tp-tag tp-t">T</span>
+        <div class="scard-icon">🍀</div><div class="scard-name" style="color:#ffcc00">Luck Storm</div>
+        <div class="scard-desc">Next 10 rolls all count as Lucky Rolls</div>
+        <div class="scard-price">🪙 600</div>
+        <button class="bbtn gold" onclick="buy('luckstorm',600)">BUY</button>
+      </div>
+      <div class="scard" id="sc-fatesealer" style="border-color:#aa44ff33">
+        <span class="tp-tag tp-t">T</span>
+        <div class="scard-icon">🎴</div><div class="scard-name" style="color:#aa44ff">Fate Sealer</div>
+        <div class="scard-desc">Guarantees Rare or better for next 5 rolls</div>
+        <div class="scard-price">🪙 850</div>
+        <button class="bbtn purple" onclick="buy('fatesealer',850)">BUY</button>
+      </div>
+      <div class="scard" id="sc-coinrain" style="border-color:#00ff8833">
+        <span class="tp-tag tp-p">P</span>
+        <div class="scard-icon">🌧️</div><div class="scard-name" style="color:#00ff88">Coin Rain</div>
+        <div class="scard-desc">Every 20 rolls it rains +500 free coins</div>
+        <div class="scard-price">🪙 4,500</div>
+        <button class="bbtn green" onclick="buy('coinrain',4500)">BUY</button>
+      </div>
+      <div class="scard" id="sc-lucksurge" style="border-color:#ff44ff33">
+        <span class="tp-tag tp-p">P</span>
+        <div class="scard-icon">⚡</div><div class="scard-name" style="color:#ff44ff">Luck Surge</div>
+        <div class="scard-desc">Secret rarities give double coins + 5% lucky trigger on every roll</div>
+        <div class="scard-price">🪙 9,000</div>
+        <button class="bbtn purple" onclick="buy('lucksurge',9000)">BUY</button>
+      </div>
+      <div class="scard" id="sc-ultramagnet" style="border-color:#ff880033">
+        <span class="tp-tag tp-p">P</span>
+        <div class="scard-icon">🧲</div><div class="scard-name" style="color:#ff8800">Ultra Magnet</div>
+        <div class="scard-desc">All money-type rarities give +500 flat coins every time</div>
+        <div class="scard-price">🪙 7,000</div>
+        <button class="bbtn gold" onclick="buy('ultramagnet',7000)">BUY</button>
+      </div>
+    </div>
+
+    <div class="ssec">🆕 v1.6.0 — New Items <span class="ssec-note">(new!)</span></div>
+    <div class="sgrid">
+      <div class="scard" id="sc-voidpulse" style="border-color:#8844ff33">
+        <span class="tp-tag tp-t">T</span>
+        <div class="scard-icon">💠</div><div class="scard-name" style="color:#8844ff">Void Pulse</div>
+        <div class="scard-desc">Next 5 rolls pull from SECRET+ pool only · Very risky</div>
+        <div class="scard-price">🪙 1,500</div>
+        <button class="bbtn purple" onclick="buy('voidpulse',1500)">BUY</button>
+      </div>
+      <div class="scard" id="sc-goldenshield" style="border-color:#ffd70033">
+        <span class="tp-tag tp-p">P</span>
+        <div class="scard-icon">🛡️</div><div class="scard-name" style="color:#ffd700">Golden Shield</div>
+        <div class="scard-desc">Every 50 rolls automatically gives a free Re-Roll</div>
+        <div class="scard-price">🪙 12,000</div>
+        <button class="bbtn gold" onclick="buy('goldenshield',12000)">BUY</button>
+      </div>
+      <div class="scard" id="sc-mirrorroll" style="border-color:#44ffcc33">
+        <span class="tp-tag tp-t">T</span>
+        <div class="scard-icon">🪞</div><div class="scard-name" style="color:#44ffcc">Mirror Roll</div>
+        <div class="scard-desc">Duplicates your next SECRET roll — get 2x coins from it</div>
+        <div class="scard-price">🪙 2,500</div>
+        <button class="bbtn blue" onclick="buy('mirrorroll',2500)">BUY</button>
+      </div>
+      <div class="scard" id="sc-cosmicboost" style="border-color:#ff66ff33">
+        <span class="tp-tag tp-p">P</span>
+        <div class="scard-icon">🌌</div><div class="scard-name" style="color:#ff66ff">Cosmic Boost</div>
+        <div class="scard-desc">Cosmic Storm rarities give 3x coins permanently</div>
+        <div class="scard-price">🪙 25,000</div>
+        <button class="bbtn pink" onclick="buy('cosmicboost',25000)">BUY</button>
+      </div>
+      <div class="scard" id="sc-timewarp" style="border-color:#ffaa0033">
+        <span class="tp-tag tp-t">T</span>
+        <div class="scard-icon">⏳</div><div class="scard-name" style="color:#ffaa00">Time Warp</div>
+        <div class="scard-desc">Rewinds your last roll — re-rolls it once for free</div>
+        <div class="scard-price">🪙 3,000</div>
+        <button class="bbtn gold" onclick="buy('timewarp',3000)">BUY</button>
+      </div>
+    </div>
+
+    <div class="ssec">⚙️ Auto Roll <span class="ssec-note">(manage in ⚙️ Auto tab)</span></div>
+    <div class="sgrid">
+      <div class="scard" id="sc-autoroll" style="border-color:#aaaaff33">
+        <span class="tp-tag tp-p">P</span>
+        <div class="scard-icon">🔄</div><div class="scard-name" style="color:#aaaaff">Auto Roll</div>
+        <div class="scard-desc">Rolls automatically every 3 seconds · Not efficient</div>
+        <div class="scard-price">🪙 250,000</div>
+        <button class="bbtn purple" onclick="buy('autoroll',250000)">BUY</button>
+      </div>
+      <div class="scard" id="sc-quickroll" style="border-color:#ffcc0033">
+        <span class="tp-tag tp-p">P</span>
+        <div class="scard-icon">⚡</div><div class="scard-name" style="color:#ffcc00">Quick Roll</div>
+        <div class="scard-desc">Instant rolls — no animation · 1 second cooldown between clicks · Cannot stack with Auto Roll</div>
+        <div class="scard-price">🪙 1,000,000</div>
+        <button class="bbtn gold" onclick="buy('quickroll',1000000)">BUY</button>
+      </div>
+      <div class="scard" id="sc-efficientroll" style="border-color:#ff880033">
+        <span class="tp-tag tp-p">P</span>
+        <div class="scard-icon">🚀</div><div class="scard-name" style="color:#ff8800">Efficient Roll</div>
+        <div class="scard-desc">Auto rolls at Frenzy speed · The real deal · Cannot stack with Quick Roll</div>
+        <div class="scard-price">🪙 5,000,000</div>
+        <button class="bbtn orange" onclick="buy('efficientroll',5000000)">BUY</button>
+      </div>
+    </div>
+
+    <div class="ssec">✨ Cosmetics <span class="ssec-note">(all Permanent)</span></div>
+    <div class="sgrid">
+      <div class="scard" id="sc-bigparticles" style="border-color:#55dd5533">
+        <span class="tp-tag tp-p">P</span>
+        <div class="scard-icon">💥</div><div class="scard-name" style="color:#55dd55">Mega Particles</div>
+        <div class="scard-desc">Bigger, flashier explosion bursts</div>
+        <div class="scard-price">🪙 200</div>
+        <button class="bbtn green" onclick="buy('bigparticles',200)">BUY</button>
+      </div>
+      <div class="scard" id="sc-rainbow" style="border-color:#ff88ff33">
+        <span class="tp-tag tp-p">P</span>
+        <div class="scard-icon">🌈</div><div class="scard-name" style="color:#ff88ff">Rainbow Spin</div>
+        <div class="scard-desc">Roll spins through rainbow colours</div>
+        <div class="scard-price">🪙 350</div>
+        <button class="bbtn purple" onclick="buy('rainbow',350)">BUY</button>
+      </div>
+      <div class="scard" id="sc-void" style="border-color:#aaeeff33">
+        <span class="tp-tag tp-p">P</span>
+        <div class="scard-icon">🌌</div><div class="scard-name" style="color:#aaeeff">Void Theme</div>
+        <div class="scard-desc">Deep space look on result panel</div>
+        <div class="scard-price">🪙 500</div>
+        <button class="bbtn blue" onclick="buy('void',500)">BUY</button>
+      </div>
+      <div class="scard" id="sc-inferno" style="border-color:#ff443333">
+        <span class="tp-tag tp-p">P</span>
+        <div class="scard-icon">🌋</div><div class="scard-name" style="color:#ff4433">Inferno Theme</div>
+        <div class="scard-desc">Fiery glow on every roll result</div>
+        <div class="scard-price">🪙 500</div>
+        <button class="bbtn red" onclick="buy('inferno',500)">BUY</button>
+      </div>
+      <div class="scard" id="sc-goldtheme" style="border-color:#ffd70033">
+        <span class="tp-tag tp-p">P</span>
+        <div class="scard-icon">👑</div><div class="scard-name" style="color:#ffd700">Gold Theme</div>
+        <div class="scard-desc">Royal gold shimmer on result box</div>
+        <div class="scard-price">🪙 600</div>
+        <button class="bbtn gold" onclick="buy('goldtheme',600)">BUY</button>
+      </div>
+      <div class="scard" id="sc-trail" style="border-color:#cc44ff33">
+        <span class="tp-tag tp-p">P</span>
+        <div class="scard-icon">✨</div><div class="scard-name" style="color:#cc44ff">Sparkle Trail</div>
+        <div class="scard-desc">Denser particle burst every roll</div>
+        <div class="scard-price">🪙 400</div>
+        <button class="bbtn purple" onclick="buy('trail',400)">BUY</button>
+      </div>
+      <div class="scard" id="sc-aurora" style="border-color:#00ffaa33">
+        <span class="tp-tag tp-p">P</span>
+        <div class="scard-icon">🌊</div><div class="scard-name" style="color:#00ffaa">Aurora Theme</div>
+        <div class="scard-desc">Flowing teal-green result panel</div>
+        <div class="scard-price">🪙 700</div>
+        <button class="bbtn teal" onclick="buy('aurora',700)">BUY</button>
+      </div>
+      <div class="scard" id="sc-obsidian" style="border-color:#cc44ff55">
+        <span class="tp-tag tp-p">P</span>
+        <div class="scard-icon">🖤</div><div class="scard-name" style="color:#cc44ff">Obsidian Theme</div>
+        <div class="scard-desc">Ultra-dark purple void aesthetic</div>
+        <div class="scard-price">🪙 750</div>
+        <button class="bbtn purple" onclick="buy('obsidian',750)">BUY</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ GLOVES ══ -->
+  <div class="panel" id="tab-gloves">
+    <div class="glove-intro">
+      <div class="glove-intro-title">🧤 GLOVES SHOP</div>
+      <div class="glove-intro-sub">Equip gloves to unlock powerful passive bonuses.<br>Requirements use collected rolls from your history.</div>
+      <div class="glove-equipped" id="equippedLabel">No glove equipped</div>
+    </div>
+
+    <div class="slbl" style="margin-bottom:8px">🗂 Your Collection</div>
+    <div class="gcollection" id="gCollection"></div>
+
+    <div class="slbl" style="margin:10px 0 8px">🧤 Available Gloves</div>
+    <div id="gloveList"></div>
+  </div>
+
+  <!-- ══ LEADERBOARD ══ -->
+  <div class="panel" id="tab-lb">
+    <!-- PIRATE EVENT STATPASS -->
+    <div class="duck-event-banner" style="background:linear-gradient(135deg,#1a0e00,#0d1a0a);border-color:#c8a046;">
+      <span style="font-size:2rem">🏴‍☠️</span>
+      <div>
+        <div class="duck-event-title" style="color:#c8a046;">PIRATE EVENT</div>
+        <div class="duck-event-sub">StatPass · 30 Tiers · +1 XP per roll · Restartable</div>
+      </div>
+      <span style="font-size:2rem">🏴‍☠️</span>
+    </div>
+    <div class="statpass-bar-wrap">
+      <div class="statpass-bar-track" style="border-color:#c8a04655"><div class="statpass-bar-fill" id="spBarFill" style="background:linear-gradient(90deg,#c8a046,#ffd700)"></div></div>
+      <div class="statpass-bar-label" id="spBarLabel">Tier 0 / 30</div>
+    </div>
+    <div class="statpass-tiers" id="statpassTiers"></div>
+    <!-- Pirate StatPass Restart -->
+    <div id="pirateRestartBox" style="background:var(--p2);border:1px solid #c8a04644;border-radius:14px;padding:14px;margin-top:12px;text-align:center;">
+      <div style="font-family:'Bangers','Impact',cursive;font-size:1rem;letter-spacing:2px;color:#c8a046;margin-bottom:4px;">🔁 RESTART STATPASS</div>
+      <div style="font-size:.62rem;font-weight:800;color:var(--sub);margin-bottom:10px;" id="pirateRestartDesc">Complete Tier 30 to restart · Another shot at PIRATE'S LUCK</div>
+      <button id="pirateRestartBtn" onclick="restartPiratePass()" style="font-family:'Bangers','Impact',cursive;font-size:.9rem;letter-spacing:1.5px;padding:9px 20px;background:linear-gradient(135deg,#3a2a00,#1a1400);color:#888844;border:1px solid #88884444;border-radius:10px;cursor:pointer;" disabled>LOCKED</button>
+    </div>
+
+    <div style="height:1px;background:var(--border);margin:16px 0"></div>
+
+    <!-- DUCKY EVENT — ENDED -->
+    <div style="background:linear-gradient(135deg,#0d0d0d,#0a0a0a);border:1px solid #33333366;border-radius:14px;padding:12px;margin-bottom:14px;opacity:.6;">
+      <div style="display:flex;align-items:center;gap:10px;justify-content:center;">
+        <span style="font-size:1.4rem">🦆</span>
+        <div>
+          <div style="font-family:'Bangers','Impact',cursive;font-size:.95rem;letter-spacing:2px;color:#666688;">DUCKY EVENT — ENDED</div>
+          <div style="font-size:.58rem;font-weight:800;color:#444455;letter-spacing:1px;">Your earned rewards are safe in your Inventory 🎒</div>
+        </div>
+        <span style="font-size:1.4rem">🦆</span>
+      </div>
+    </div>
+
+    <div style="height:1px;background:var(--border);margin:16px 0"></div>
+
+    <!-- LEADERBOARD -->
+    <div id="lbSignupBox" style="display:none;background:var(--p2);border:1px solid #ffe06633;border-radius:14px;padding:16px;margin-bottom:14px;text-align:center;">
+      <div style="font-size:1.4rem;margin-bottom:6px;">🏆</div>
+      <div style="font-family:'Bangers','Impact',cursive;font-size:1.1rem;letter-spacing:2px;color:#ffe066;margin-bottom:4px;">JOIN THE LEADERBOARD?</div>
+      <div style="font-size:.62rem;color:var(--sub);font-weight:800;margin-bottom:12px;">Your display name will be posted publicly with your stats</div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="joinLeaderboard()" style="flex:1;padding:10px;font-family:'Bangers','Impact',cursive;font-size:.95rem;letter-spacing:1.5px;background:linear-gradient(135deg,#ffe066,#ffaa00);color:#0a0a12;border:none;border-radius:10px;cursor:pointer;">YES, POST MY SCORES 🏆</button>
+        <button onclick="document.getElementById('lbSignupBox').style.display='none'" style="padding:10px 14px;font-family:'Bangers','Impact',cursive;font-size:.95rem;letter-spacing:1px;background:transparent;color:#6666aa;border:1px solid #2a2a40;border-radius:10px;cursor:pointer;">SKIP</button>
+      </div>
+      <div id="lbStatus" style="font-size:.6rem;font-weight:800;color:#6666aa;margin-top:8px;min-height:14px;text-align:center"></div>
+    </div>
+
+    <div id="lbGuestBox" style="display:none;background:var(--p2);border:1px solid #2a2a40;border-radius:14px;padding:14px;margin-bottom:14px;text-align:center;">
+      <div style="font-size:.7rem;font-weight:800;color:#444466;letter-spacing:1px;">🔒 SIGN IN TO JOIN THE LEADERBOARD</div>
+    </div>
+
+    <div style="margin-bottom:10px">
+      <div class="ssec">💰 Most Coins Earned</div>
+      <div class="lb-board" id="lb-coins"></div>
+    </div>
+    <div style="margin-bottom:10px">
+      <div class="ssec">🎲 Most Rolls Made</div>
+      <div class="lb-board" id="lb-rolls"></div>
+    </div>
+    <div style="margin-bottom:10px">
+      <div class="ssec">⭐ Rarest Roll</div>
+      <div class="lb-board" id="lb-rarest"></div>
+    </div>
+  </div>
+
+</div><!-- end shell -->
+
+<!-- INVENTORY OVERLAY -->
+<div id="inventoryOverlay" style="display:none;position:fixed;inset:0;z-index:20000;background:rgba(0,0,0,.88);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;" onclick="if(event.target===this)closeInventory()">
+  <div style="width:420px;max-width:92vw;background:#0d0d1a;border:1px solid #2a2a40;border-radius:20px;padding:24px;max-height:85vh;overflow-y:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div style="font-family:'Bangers','Impact',cursive;font-size:1.4rem;letter-spacing:2px;color:#ffcc00">🎒 INVENTORY</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button onclick="closeInventory();openAchievements();" style="font-family:'Bangers','Impact',cursive;font-size:.85rem;letter-spacing:1.5px;padding:6px 14px;background:linear-gradient(135deg,#1a1a2e,#0d0d1a);color:#aa88ff;border:1px solid #aa88ff44;border-radius:10px;cursor:pointer;">🏆 ACHIEVEMENTS</button>
+        <button onclick="closeInventory()" style="background:none;border:none;color:var(--sub);font-size:1.2rem;cursor:pointer;padding:4px 8px;">✕</button>
+      </div>
+    </div>
+    <div style="font-size:.62rem;font-weight:800;color:var(--sub);letter-spacing:1px;margin-bottom:12px;">EARNED FROM STATPASS — TOGGLE ON/OFF</div>
+    <div id="inventoryList"></div>
+  </div>
+</div>
+
+<!-- ACHIEVEMENTS OVERLAY -->
+<div id="achievementsOverlay" style="display:none;position:fixed;inset:0;z-index:20001;background:rgba(0,0,0,.92);backdrop-filter:blur(10px);align-items:center;justify-content:center;" onclick="if(event.target===this)closeAchievements()">
+  <div style="width:440px;max-width:92vw;background:#0d0d1a;border:1px solid #aa88ff44;border-radius:20px;padding:24px;max-height:85vh;overflow-y:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+      <div style="font-family:'Bangers','Impact',cursive;font-size:1.4rem;letter-spacing:2px;color:#aa88ff">🏆 ACHIEVEMENTS</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button onclick="closeAchievements();openInventory();" style="font-family:'Bangers','Impact',cursive;font-size:.85rem;letter-spacing:1.5px;padding:6px 14px;background:linear-gradient(135deg,#1a1a2e,#0d0d1a);color:#ffcc00;border:1px solid #ffcc0044;border-radius:10px;cursor:pointer;">🎒 INVENTORY</button>
+        <button onclick="closeAchievements()" style="background:none;border:none;color:var(--sub);font-size:1.2rem;cursor:pointer;padding:4px 8px;">✕</button>
+      </div>
+    </div>
+    <div style="font-size:.62rem;font-weight:800;color:var(--sub);letter-spacing:1px;margin-bottom:14px;">FLEX ON EVERYONE. NO REWARDS. JUST VIBES.</div>
+    <div id="achievementsList"></div>
+  </div>
+</div>
+
+<!-- SNEAK PEEK POPUP -->
+<div id="sneakPeekOverlay" style="display:none;position:fixed;inset:0;z-index:20001;background:rgba(0,0,0,.92);backdrop-filter:blur(10px);align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
+  <div style="width:400px;max-width:90vw;background:#0d0d1a;border:2px solid #ffe06666;border-radius:20px;padding:28px;text-align:center;animation:csIn .5s cubic-bezier(.175,.885,.32,1.275) both;">
+    <div style="font-size:2rem;margin-bottom:8px">🔭</div>
+    <div style="font-family:'Bangers','Impact',cursive;font-size:1.6rem;letter-spacing:3px;background:linear-gradient(135deg,#ffe066,#ff88ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px;">V1.1.0 IS LIVE!</div>
+    <div style="font-size:.65rem;color:var(--sub);font-weight:800;letter-spacing:2px;margin-bottom:18px;">THE UPDATE IS HERE</div>
+    <div style="display:flex;flex-direction:column;gap:8px;text-align:left;margin-bottom:20px;">
+      <div class="sneak-item">🌌 <b>10 Ultra Rarities</b> — beyond Sunlight Moonlight</div>
+      <div class="sneak-item">🧤 <b>3 New Gloves</b> — Fortune, Fate &amp; Greed</div>
+      <div class="sneak-item">🛒 <b>5 New Shop Items</b> — luck &amp; coin focused</div>
+      <div class="sneak-item">⚙️ <b>Auto Roll Settings</b> — Auto, Quick &amp; Efficient</div>
+    </div>
+    <div style="font-size:.62rem;color:#6666aa;font-weight:800;margin-bottom:16px;">You're playing v1.6.0. Welcome. 🔥</div>
+    <button onclick="document.getElementById('sneakPeekOverlay').style.display='none'" style="font-family:'Bangers','Impact',cursive;font-size:1rem;letter-spacing:2px;padding:10px 28px;background:linear-gradient(135deg,#ffe066,#ffaa00);color:#0a0a12;border:none;border-radius:10px;cursor:pointer;">LET'S ROLL! 🎲</button>
+  </div>
+</div>
+
+<canvas id="beachCanvas"></canvas>
+
+
+<script>
+/* ═══════ RARITIES ═══════ */
+const R = [
+  { name:'Common',       odds:5,     color:'#b0b0c0', emoji:'⬜' },
+  { name:'Uncommon',     odds:7,     color:'#55dd55', emoji:'🟩' },
+  { name:'Rare',         odds:10,    color:'#4488ff', emoji:'🟦' },
+  { name:'Epik',         odds:16,    color:'#cc44ff', emoji:'🟪' },
+  { name:'Lapis',        odds:22,    color:'#22aaff', emoji:'💎' },
+  { name:'Emerald',      odds:30,    color:'#00ffaa', emoji:'💚' },
+  { name:'COALLLL',      odds:40,    color:'#888899', emoji:'🖤' },
+  { name:'Diamond',      odds:60,    color:'#aaeeff', emoji:'💠' },
+  { name:'Gold',         odds:85,    color:'#ffcc00', emoji:'⭐',  money:true },
+  { name:'Bone',         odds:120,   color:'#e8e0cc', emoji:'🦴' },
+  { name:'Iron',         odds:160,   color:'#a8b4c0', emoji:'⚙️' },
+  { name:'Copper',       odds:190,   color:'#e8824a', emoji:'🟠',  money:true },
+  { name:'Coin',         odds:220,   color:'#f5d020', emoji:'🪙',  money:true },
+  { name:'Money',        odds:280,   color:'#44cc66', emoji:'💵',  money:true },
+  { name:'Acidic',       odds:340,   color:'#aaff00', emoji:'🧪' },
+  { name:'Burn',         odds:380,   color:'#ff6622', emoji:'🔥' },
+  { name:'LUCKY',        odds:420,   color:'#ffe94d', emoji:'🍀',  mutated:true, parent:'Coin',  money:true },
+  { name:'Token',        odds:500,   color:'#aa88ff', emoji:'🎫',  money:true },
+  { name:'BANK',         odds:500,   color:'#22ff88', emoji:'🏦',  mutated:true, parent:'Money', money:true },
+  { name:'Crystal',      odds:600,   color:'#88ffee', emoji:'🔷' },
+  { name:'Phantom',      odds:750,   color:'#cc99ff', emoji:'👻' },
+  { name:'LAVA',         odds:900,   color:'#ff3300', emoji:'🌋',  mutated:true, parent:'Burn' },
+  { name:'Void',         odds:1000,  color:'#6600cc', emoji:'🌑' },
+  { name:'JACKPOT',      odds:1200,  color:'#ffd700', emoji:'🎰',  mutated:true, parent:'Token', money:true },
+  { name:'Diablo',       odds:1500,  color:'#ff2244', emoji:'😈' },
+  { name:'Magnetic',     odds:2000,  color:'#88ffff', emoji:'🧲' },
+  { name:'Lopaz',        odds:2500,  color:'#dd88ff', emoji:'🔮' },
+  { name:'EL DIABLO',    odds:3500,  color:'#ff0000', emoji:'👿',  mutated:true, parent:'Diablo' },
+  { name:'Nova',         odds:4000,  color:'#ffeeaa', emoji:'💫' },
+  { name:'Abyss',        odds:5000,  color:'#3300aa', emoji:'🕳️' },
+  { name:'SOLAR',        odds:6500,  color:'#ffdd00', emoji:'☀️',  mutated:true, parent:'Nova' },
+  { name:'Relic',        odds:8000,  color:'#d4af37', emoji:'🏺' },
+  { name:'Glacial',      odds:10000, color:'#aaddff', emoji:'🧊' },
+  { name:'Celestial',    odds:13000, color:'#e8ccff', emoji:'🌠' },
+  { name:'FROZEN VOID',  odds:16000, color:'#88ccff', emoji:'❄️',  mutated:true, parent:'Glacial' },
+  { name:'Nebula',       odds:20000, color:'#ff66ff', emoji:'🌌',  secret:true },
+  { name:'Titan',        odds:25000, color:'#ffaa44', emoji:'⚡' },
+  { name:'OBLIVION',     odds:35000, color:'#ffffff', emoji:'💠',  mutated:true, parent:'Void',   secret:true },
+  { name:'Singularity',  odds:50000, color:'#ff44cc', emoji:'🌀',  secret:true },
+  { name:'THE COIN GOD', odds:75000, color:'#ffd700', emoji:'🪙',  secret:true, money:true },
+  { name:'ETERNAL',      odds:150000,color:'#ffffff', emoji:'♾️',  mutated:true, parent:'Singularity', secret:true },
+
+  /* ══ COSMIC STORM (new v1.6.0) ══ */
+  { name:'Vortex',        odds:22000,  color:'#7744ff', emoji:'🌀',  secret:true },
+  { name:'Shatter',       odds:28000,  color:'#ff6688', emoji:'💥',  secret:true },
+  { name:'STORM SURGE',   odds:38000,  color:'#00ccff', emoji:'⛈️',  mutated:true, parent:'Tsunami', secret:true },
+  { name:'Radium',        odds:55000,  color:'#88ff00', emoji:'☢️',  secret:true },
+  { name:'Phantom Core',  odds:70000,  color:'#cc44ff', emoji:'👁️',  secret:true },
+  { name:'NETHER',        odds:90000,  color:'#880000', emoji:'🕳️',  mutated:true, parent:'Abyss', secret:true },
+  { name:'Ascendant',     odds:120000, color:'#ffdd88', emoji:'🧬',  secret:true },
+  { name:'Warpzone',      odds:130000, color:'#44ffcc', emoji:'🌐',  secret:true },
+  { name:'APEX VOID',     odds:140000, color:'#550088', emoji:'🌑',  mutated:true, parent:'Phantom Core', secret:true },
+  { name:'Supernova Rift',odds:160000, color:'#ff4488', emoji:'💫',  secret:true },
+
+  /* ══ 10 NEW RARITIES ══ */
+  { name:'Shadow',       odds:45,    color:'#443355', emoji:'🌒' },
+  { name:'Mosaic',       odds:130,   color:'#ff99cc', emoji:'🎨' },
+  { name:'Stardust',     odds:450,   color:'#ccaaff', emoji:'🌟' },
+  { name:'Tsunami',      odds:700,   color:'#0088ff', emoji:'🌊' },
+  { name:'BLAZE',        odds:1100,  color:'#ff4400', emoji:'🔥', mutated:true, parent:'Burn' },
+  { name:'Mirage',       odds:3000,  color:'#ffccaa', emoji:'🏜️' },
+  { name:'HYPERNOVA',    odds:9000,  color:'#ffaaff', emoji:'🌠', mutated:true, parent:'Nova', secret:true },
+  { name:'Eclipse',      odds:18000, color:'#330066', emoji:'🌑', secret:true },
+  { name:'Quasar',       odds:40000, color:'#ff88ff', emoji:'💜', secret:true, money:true },
+  { name:'ABSOLUTE ZERO',odds:100000,color:'#aaeeff', emoji:'🧊', mutated:true, parent:'Glacial', secret:true },
+
+  /* ══════════════════════════════
+     SOLS UNITED  —  20 new rarities
+     ~half low/mid, ~half high
+  ══════════════════════════════ */
+  // ── Low / Mid ──
+  { name:'Sol',          odds:8,    color:'#ffdd44', emoji:'🌞', su:true },
+  { name:'Dusk',         odds:18,   color:'#ff9955', emoji:'🌇', su:true },
+  { name:'Fog',          odds:28,   color:'#aabbcc', emoji:'🌫️', su:true },
+  { name:'Pebble',       odds:40,   color:'#998877', emoji:'🪨', su:true },
+  { name:'Spark',        odds:55,   color:'#ffff66', emoji:'⚡', su:true, money:true },
+  { name:'Mossy',        odds:80,   color:'#66aa44', emoji:'🌿', su:true },
+  { name:'Rusted',       odds:110,  color:'#bb6633', emoji:'🔩', su:true },
+  { name:'Aqua',         odds:140,  color:'#33ddff', emoji:'💧', su:true, money:true },
+  { name:'EMBER',        odds:180,  color:'#ff8833', emoji:'🔥', su:true, mutated:true, parent:'Sol' },
+  { name:'Gloom',        odds:240,  color:'#554466', emoji:'🌑', su:true },
+  // ── High ──
+  { name:'Solar Flare',  odds:850,  color:'#ffcc00', emoji:'☄️', su:true },
+  { name:'Prism',        odds:1400, color:'#ffaaff', emoji:'🔆', su:true },
+  { name:'STORM',        odds:1800, color:'#88aaff', emoji:'⛈️', su:true, mutated:true, parent:'Aqua' },
+  { name:'Obsidian Sol', odds:2200, color:'#cc55ff', emoji:'🖤', su:true },
+  { name:'Radiant',      odds:3500, color:'#ffffaa', emoji:'✨', su:true, money:true },
+  { name:'Tempest',      odds:6000, color:'#44aaff', emoji:'🌪️', su:true },
+  { name:'APEX',         odds:8500, color:'#ff4488', emoji:'🔺', su:true, mutated:true, parent:'Solar Flare', secret:true },
+  { name:'Rift',         odds:11000,color:'#ff00ff', emoji:'🌀', su:true, secret:true },
+  { name:'SUN GOD',      odds:30000,color:'#ffee00', emoji:'☀️', su:true, secret:true, money:true },
+  { name:'SOLS UNITED',  odds:75000,color:'#ffffff', emoji:'🌐', su:true, mutated:true, parent:'Radiant', secret:true },
+  { name:'Sunlight Moonlight', odds:1000000, color:'#fffacd', emoji:'🌓', su:true, secret:true, special:true },
+
+  /* ═══ VINTAGE (150k–900k) ═══ */
+  { name:'Antique',                odds:180000, color:'#c8a96e', emoji:'🏺', secret:true },
+  { name:'Corroded',               odds:200000, color:'#7a6040', emoji:'🔩', secret:true },
+  { name:'Relic Dust',             odds:250000, color:'#b8860b', emoji:'🪨', secret:true },
+  { name:'Tarnished',              odds:280000, color:'#8a7560', emoji:'🥀', secret:true },
+  { name:'Worn',                   odds:300000, color:'#9e8866', emoji:'👢', secret:true },
+  { name:'Fossilized',             odds:350000, color:'#a0845c', emoji:'🦴', secret:true },
+  { name:'Decrepit',               odds:420000, color:'#6b5344', emoji:'🕯️', secret:true },
+  { name:'AGED',                   odds:500000, color:'#d4a017', emoji:'⚗️', mutated:true, parent:'Antique', secret:true },
+  { name:'Weathered',              odds:650000, color:'#8b7355', emoji:'🌿', secret:true },
+  { name:'CRUMBLED',               odds:750000, color:'#8b6914', emoji:'💀', mutated:true, parent:'Fossilized', secret:true },
+  { name:'FORGOTTEN',              odds:800000, color:'#7c6248', emoji:'📜', mutated:true, parent:'Weathered', secret:true },
+  { name:'TIMELESS',               odds:900000, color:'#c9a84c', emoji:'⏳', mutated:true, parent:'Relic Dust', secret:true },
+
+  /* ══════════════════════════════
+     V1.1.0 — CHAOS/SPACE ULTRA RARITIES
+     All rarer than Sunlight Moonlight
+  ══════════════════════════════ */
+  { name:'Dark Matter',    odds:2000000,   color:'#220033', emoji:'🌑', ultra:true, secret:true },
+  { name:'Void Rift',      odds:3500000,   color:'#6600ff', emoji:'🕳️', ultra:true, secret:true, mutated:true, parent:'Void' },
+  { name:'Chaos Shard',    odds:5000000,   color:'#ff0044', emoji:'💢', ultra:true, secret:true },
+  { name:'ANTIMATTER',     odds:7500000,   color:'#ff00ff', emoji:'⚛️', ultra:true, secret:true, mutated:true, parent:'Dark Matter' },
+  { name:'Pulsar',         odds:10000000,  color:'#00ffff', emoji:'💫', ultra:true, secret:true },
+  { name:'Event Horizon',  odds:15000000,  color:'#000000', emoji:'🌀', ultra:true, secret:true },
+  { name:'CHAOS GOD',      odds:25000000,  color:'#ff2200', emoji:'👁️', ultra:true, secret:true, mutated:true, parent:'Chaos Shard', money:true },
+  { name:'Cosmic Tear',    odds:50000000,  color:'#aaaaff', emoji:'🌌', ultra:true, secret:true },
+  { name:'THE VOID KING',  odds:100000000, color:'#4400aa', emoji:'👑', ultra:true, secret:true, mutated:true, parent:'Void Rift', money:true },
+  { name:'OMNIPOTENT',     odds:999999999, color:'#ffffff', emoji:'✨', ultra:true, secret:true, special:true },
+  { name:'Undefined',      odds:1500000000, color:'#ff00ff', emoji:'❓', ultra:true, secret:true, special:true },
+
+  /* ══ PIRATE RARITIES (v2.0.0) — all 1/100M ⭐SECRET ══ */
+  { name:'Jolly Roger',       odds:100000000, color:'#eeeeee', emoji:'🏴‍☠️', secret:true },
+  { name:'Davy Jones',        odds:100000000, color:'#1a4a6e', emoji:'⚓', secret:true },
+  { name:'Black Pearl',       odds:100000000, color:'#111122', emoji:'🚢', secret:true },
+  { name:'Kraken',            odds:100000000, color:'#2a0a4e', emoji:'🐙', secret:true },
+  { name:'Sea Serpent',       odds:100000000, color:'#0d3d2e', emoji:'🐍', secret:true },
+  { name:'Maelstrom',         odds:100000000, color:'#003388', emoji:'🌊', secret:true },
+  { name:"Dead Man's Chest",  odds:100000000, color:'#8b4513', emoji:'📦', secret:true },
+  { name:'Cursed Gold',       odds:100000000, color:'#c8a046', emoji:'💀', secret:true },
+  { name:'Ghost Ship',        odds:100000000, color:'#aaaacc', emoji:'👻', secret:true },
+  { name:'Treasure Isle',     odds:100000000, color:'#f5c518', emoji:'🏝️', secret:true },
+  { name:'Cannonball',        odds:100000000, color:'#556677', emoji:'💣', secret:true },
+  { name:"Siren's Call",      odds:100000000, color:'#cc44aa', emoji:'🧜', secret:true },
+  { name:'Plank Walker',      odds:100000000, color:'#8b6914', emoji:'🪵', secret:true },
+  { name:'Iron Anchor',       odds:100000000, color:'#778899', emoji:'⚓', secret:true },
+  { name:'Buccaneer',         odds:100000000, color:'#cc4400', emoji:'🗡️', secret:true },
+  { name:'Corsair',           odds:100000000, color:'#aa0022', emoji:'⚔️', secret:true },
+  { name:'Freebooter',        odds:100000000, color:'#44aa66', emoji:'🏴‍☠️', secret:true },
+  { name:'Privateer',         odds:100000000, color:'#4466cc', emoji:'🔱', secret:true },
+  { name:'POSEIDON',          odds:100000000, color:'#00aaff', emoji:'🔱', secret:true },
+  { name:'FLYING DUTCHMAN',   odds:100000000, color:'#00ff88', emoji:'🚢', secret:true },
+
+  /* ══ PIRATE EVENT EXCLUSIVE ══ */
+  /* DUTCHMAN — never appears in index, only obtainable via PIRATE'S LUCK */
+  { name:"DUTCHMAN", odds:750000, color:'#00cc88', emoji:'⚓', secret:true, pirateExclusive:true, neverIndex:true },
+];
+
+const wts=R.map(r=>1/r.odds), totW=wts.reduce((a,b)=>a+b,0);
+const cum=[]; let ca=0; wts.forEach(w=>{ca+=w/totW;cum.push(ca);});
+
+/* ═══════ ITEM ROLLS ═══════
+   Secret hidden rolls — NOT in the index
+   Requirements must be met to appear
+═══════════════════════════════ */
+const ITEM_ROLLS = [
+  {
+    id: 'lucky',
+    name: 'Lucky Pot',
+    emoji: '🍀',
+    color: '#88ff44',
+    flashColor: '#00ff44',
+    odds: 45000,
+    coinReward: 75000,
+    btnId: 'itemRollLucky',
+    // Requirements: Lucky Glove equipped + Luck Storm active
+    check: ()=> equippedGlove==='lucky' && T.luckstorm>0,
+  },
+  {
+    id: 'diablo',
+    name: 'Diablo VOID',
+    emoji: '😈',
+    color: '#ff0044',
+    flashColor: '#ff0000',
+    odds: 450000,
+    coinReward: 900000,
+    btnId: 'itemRollDiablo',
+    // Requirements: Diablo Glove + Mega Particles + Fate Sealer active
+    check: ()=> equippedGlove==='diablo' && P.bigparticles && T.fatesealer>0,
+  },
+];
+
+/* ═══════ GLOVES DATA ═══════ */
+const GLOVES = [
+  {
+    id:'lucky',
+    name:'Lucky Glove',
+    icon:'🍀',
+    color:'#22aaff',
+    tier:'Uncommon',
+    bonus:'+15% coins · Common rolls refunded +30',
+    desc:'A shimmering glove woven from four-leaf clovers. Basic luck, reliable returns.',
+    reqs:[{name:'Lapis',count:5},{name:'Epik',count:10}],
+    effect: r=>({ coinMult:1.15, commonRefund:true })
+  },
+  {
+    id:'iron',
+    name:'Iron Glove',
+    icon:'⚙️',
+    color:'#a8b4c0',
+    tier:'Rare',
+    bonus:'+1 free Re-Roll per 10 rolls · +5 coins/roll',
+    desc:'Forged from scrap metal. Grinds hard so you don\'t have to.',
+    reqs:[{name:'Iron',count:15},{name:'Bone',count:8}],
+    effect: r=>({ coinBonus:5, freeRerollEvery:10 })
+  },
+  {
+    id:'inferno',
+    name:'Inferno Glove',
+    icon:'🔥',
+    color:'#ff6622',
+    tier:'Epic',
+    bonus:'Burn/Lava rolls give 3× coins · +20% all coins',
+    desc:'Scorched from the deepest lava pit. Burns bright, burns hard.',
+    reqs:[{name:'Burn',count:5},{name:'LAVA',count:1},{name:'Epik',count:20}],
+    effect: r=>({ coinMult:1.2, burnBoost:3 })
+  },
+  {
+    id:'void',
+    name:'Void Glove',
+    icon:'🌑',
+    color:'#8844ff',
+    tier:'Legendary',
+    bonus:'Void/Abyss rolls give 5× coins · Double-roll chance 10%',
+    desc:'Stitched from the darkness between stars. Unpredictable, terrifyingly powerful.',
+    reqs:[{name:'Void',count:3},{name:'Phantom',count:5},{name:'Diamond',count:10}],
+    effect: r=>({ voidBoost:5, randomDouble:0.1 })
+  },
+  {
+    id:'coin',
+    name:'Coin Glove',
+    icon:'🪙',
+    color:'#f5d020',
+    tier:'Rare',
+    bonus:'All money-type rolls give +100 flat coins',
+    desc:'Dipped in liquid gold. Everything you touch turns to profit.',
+    reqs:[{name:'Coin',count:5},{name:'Gold',count:3},{name:'Money',count:3}],
+    effect: r=>({ moneyFlat:100 })
+  },
+  {
+    id:'crystal',
+    name:'Crystal Glove',
+    icon:'🔷',
+    color:'#88ffee',
+    tier:'Epic',
+    bonus:'Crystal/Diamond/Lapis rolls give 4× coins · +10% all',
+    desc:'Cut from pure crystalline ore. Cold, sharp, and incredibly valuable.',
+    reqs:[{name:'Crystal',count:3},{name:'Diamond',count:5},{name:'Lapis',count:8}],
+    effect: r=>({ coinMult:1.1, crystalBoost:4 })
+  },
+  {
+    id:'diablo',
+    name:'Diablo Glove',
+    icon:'😈',
+    color:'#ff2244',
+    tier:'Mythic',
+    bonus:'Diablo/EL DIABLO give 8× coins · 5% chance to skip to Rare+',
+    desc:'Pulled straight from the underworld. Pure chaos wrapped in leather.',
+    reqs:[{name:'Diablo',count:2},{name:'Burn',count:10},{name:'LAVA',count:2}],
+    effect: r=>({ diabloBoost:8, luckyChance:0.05 })
+  },
+  {
+    id:'celestial',
+    name:'Celestial Glove',
+    icon:'🌠',
+    color:'#e8ccff',
+    tier:'Divine',
+    bonus:'+50% ALL coins · Secret rolls give 3× bonus coins',
+    desc:'Woven from stardust and moonlight. Only the most dedicated rollers can wield it.',
+    reqs:[{name:'Celestial',count:1},{name:'Nova',count:2},{name:'Nebula',count:1}],
+    effect: r=>({ coinMult:1.5, secretBoost:3 })
+  },
+
+  /* ══ SOLS UNITED GLOVES ══ */
+  {
+    id:'solar',
+    name:'Solar Glove',
+    icon:'🌞',
+    color:'#ffdd44',
+    tier:'SU Rare',
+    bonus:'Sol/Solar Flare/SUN GOD give 5× coins · Spark rolls +200 flat',
+    desc:'Forged from a fragment of the first sun. Warm to the touch, devastating in power.',
+    reqs:[{name:'Sol',count:10},{name:'Solar Flare',count:2},{name:'Spark',count:5}],
+    effect: r=>({ solarBoost:5, sparkFlat:200 })
+  },
+  {
+    id:'tempest',
+    name:'Tempest Glove',
+    icon:'🌪️',
+    color:'#44aaff',
+    tier:'SU Epic',
+    bonus:'15% chance to roll TWICE and keep best · Aqua/STORM give 4× coins',
+    desc:'Howls with the force of a thousand storms. Unstable, unpredictable, magnificent.',
+    reqs:[{name:'Aqua',count:8},{name:'STORM',count:2},{name:'Tempest',count:1}],
+    effect: r=>({ randomDouble:0.15, stormBoost:4 })
+  },
+  {
+    id:'solsunited',
+    name:'SOLS UNITED Glove',
+    icon:'🌐',
+    color:'#ffffff',
+    tier:'SU DIVINE',
+    bonus:'+80% ALL coins · All SU rarities 6× · Grants 1 free Re-Roll every 5 rolls',
+    desc:'The ultimate glove. Only those who\'ve seen every corner of Sols United can equip it.',
+    reqs:[{name:'SOLS UNITED',count:1},{name:'SUN GOD',count:1},{name:'APEX',count:1},{name:'Rift',count:1}],
+    effect: r=>({ coinMult:1.8, suBoost:6, freeRerollEvery:5 })
+  },
+
+  /* ══ DUCKY EVENT GLOVE ══ */
+  {
+    id:'duck',
+    name:'Ducky Glove',
+    icon:'🦆',
+    color:'#ffdd44',
+    tier:'🦆 Event',
+    bonus:'+20% all coins · 1000+ rarity = duck on roll btn for 5 rolls · 8% lucky skip',
+    desc:'A glove made entirely of rubber duck material. Absurd. Powerful. Quack.',
+    reqs:[{name:'Gold',count:20},{name:'Coin',count:15},{name:'Diamond',count:5}],
+    effect: r=>({ coinMult:1.2, duckRareThreshold:1000, luckyChance:0.08 })
+  },
+
+  /* ══ V1.1.0 GLOVES ══ */
+  {
+    id:'fortuneglove',
+    name:'Fortune Glove',
+    icon:'🎰',
+    color:'#ffcc00',
+    tier:'Rare',
+    bonus:'+35% all coins · 12% Lucky Roll chance on every roll · Money rarities give 3×',
+    desc:'Dripping with gold. Every roll feels like a jackpot waiting to happen.',
+    reqs:[{name:'Gold',count:10},{name:'JACKPOT',count:2},{name:'THE COIN GOD',count:1},{name:'Money',count:8}],
+    effect: r=>({ coinMult:1.35, autoLucky:0.12, moneyBoost:3 })
+  },
+  {
+    id:'fateglove',
+    name:'Fate Glove',
+    icon:'🎴',
+    color:'#aa44ff',
+    tier:'Rare',
+    bonus:'Rare+ odds boosted 1.5× · +20% coins · 15% chance to skip Common/Uncommon',
+    desc:'The universe bends its rules for whoever wears this. Fate is yours to decide.',
+    reqs:[{name:'Nebula',count:1},{name:'Titan',count:2},{name:'Singularity',count:1},{name:'Phantom',count:10}],
+    effect: r=>({ coinMult:1.20, oddsBoost:1.5, skipLow:0.15 })
+  },
+  {
+    id:'greedglove',
+    name:'Greed Glove',
+    icon:'💸',
+    color:'#00ff88',
+    tier:'Rare',
+    bonus:'All coin rewards ×2 · Every 5 rolls bank +200 coins · Secret rolls give 5× coins',
+    desc:'Pure, unapologetic greed. The more you roll, the more you earn.',
+    reqs:[{name:'ETERNAL',count:1},{name:'OBLIVION',count:1},{name:'Quasar',count:1},{name:'Diamond',count:20}],
+    effect: r=>({ coinMult:2.0, bankEvery:5, bankAmt:200, secretBoost:5 })
+  },
+  {
+    id:'stormglove',
+    name:'Storm Glove',
+    icon:'⛈️',
+    color:'#00ccff',
+    tier:'Epic',
+    bonus:'Cosmic Storm rarities give 4× coins · 20% chance to auto-reroll on Common · +25% all coins',
+    desc:'Channel the chaos of the cosmos. Every roll feels electric.',
+    reqs:[{name:'Vortex',count:3},{name:'STORM SURGE',count:1},{name:'Shatter',count:2},{name:'Titan',count:5}],
+    effect: r=>({ coinMult:1.25, cosmicMult:4, commonReroll:0.20 })
+  },
+  {
+    id:'phantomglove',
+    name:'Phantom Glove',
+    icon:'👁️',
+    color:'#cc44ff',
+    tier:'Mythic',
+    bonus:'15% chance every roll is treated as Lucky · Phantom/Abyss/NETHER give 6× coins · Oracle Eye always triggers',
+    desc:'You see what others cannot. The rolls bend to your will.',
+    reqs:[{name:'Phantom Core',count:2},{name:'APEX VOID',count:1},{name:'Phantom',count:5},{name:'Abyss',count:3}],
+    effect: r=>({ luckyChance:0.15, phantomBoost:6, forceOracle:true })
+  },
+  {
+    id:'ascendantglove',
+    name:'Ascendant Glove',
+    icon:'🧬',
+    color:'#ffdd88',
+    tier:'Divine',
+    bonus:'+60% all coins · Ascendant/Warpzone/Supernova Rift give 5× · Every 15 rolls a free Lucky Roll',
+    desc:'You have transcended the ordinary. The rarest rolls seek you out.',
+    reqs:[{name:'Ascendant',count:2},{name:'Supernova Rift',count:1},{name:'Warpzone',count:2},{name:'Nebula',count:3}],
+    effect: r=>({ coinMult:1.6, ascendantBoost:5, freeRerollEvery:15 })
+  },
+  {
+    id:'undefinedglove',
+    name:'Undefined Glove',
+    icon:'❓',
+    color:'#ff00ff',
+    tier:'???',
+    bonus:'Undefined gives ∞ coins (×999) · +100% all coins · Every roll has 1% chance to become Undefined',
+    desc:'This glove should not exist. The game does not know what it is. Neither do you.',
+    reqs:[{name:'Undefined',count:1},{name:'OMNIPOTENT',count:1}],
+    effect: r=>({ coinMult:2.0, undefinedBoost:999, undefinedChance:0.01 })
+  },
+];
+
+/* ═══════ STATE ═══════ */
+let coins=0, rolling=false, autoQ=0, rollCount=0;
+// Achievement/collection tracking — declared early so index renderer can use them
+let allRolledNames=new Set();
+let totalCoinsEarned=0;
+let ultraLuckUsed=false;
+let itemRollHits={luckypot:0, diablo:0};
+let unlockedAchievements=new Set();
+// Pirate Event constants & state — declared early to avoid TDZ errors
+const PIRATE_MAX_RESTARTS=25;
+const PIRATE_RESTART_BASE=100000;
+const PIRATE_MAX_TIER=30;
+const PIRATE_XP_PER_TIER=10;
+let pirateXP=0, pirateRestarts=0, pirateLuckRolls=0, pirateLuckUsed=false;
+let beachAnimFrame=null;
+const PIRATE_TIERS=[
+  {tier:5,  icon:'💰', name:"Gold Everywhere",    desc:'Coin emojis on all the bars',                  cosmeticId:'goldEverywhere'},
+  {tier:10, icon:'🏖️', name:"Beach Screen!",       desc:'Tropical island UI with animated water+fish',  cosmeticId:'beachScreen'},
+  {tier:15, icon:'⚓', name:"YA-ARGH!",            desc:'50% discount on all shop items — ONE TIME USE', cosmeticId:'yarghDiscount'},
+  {tier:20, icon:'🦜', name:"Meaningful Pirates",   desc:'Pirate gives you quotes every 7 rolls',        cosmeticId:'pirateQuotes'},
+  {tier:21, icon:'🪙', name:'Coins ×200',          desc:'+200 coins bonus',                             reward:200},
+  {tier:22, icon:'🪙', name:'Coins ×350',          desc:'+350 coins bonus',                             reward:350},
+  {tier:23, icon:'🪙', name:'Coins ×500',          desc:'+500 coins bonus',                             reward:500},
+  {tier:24, icon:'🪙', name:'Coins ×750',          desc:'+750 coins bonus',                             reward:750},
+  {tier:25, icon:'🗺️', name:"Map Finder",          desc:'Renames title to MAP FINDER',                  cosmeticId:'mapFinder'},
+  {tier:26, icon:'🪙', name:'Coins ×500',          desc:'+500 coins bonus',                             reward:500},
+  {tier:27, icon:'🪙', name:'Coins ×750',          desc:'+750 coins bonus',                             reward:750},
+  {tier:28, icon:'🪙', name:'Coins ×1000',         desc:'+1,000 coins bonus',                           reward:1000},
+  {tier:29, icon:'🪙', name:'Coins ×1500',         desc:'+1,500 coins bonus',                           reward:1500},
+  {tier:30, icon:'☠️', name:"PIRATE'S LUCK",       desc:"Next 3 rolls guaranteed 75k+. Chance to hit DUTCHMAN (1/750k) — exclusive!", cosmeticId:'pirateLuck'},
+];
+const PIRATE_INV={
+  goldEverywhere:{earned:false,active:false,name:"Gold Everywhere",   icon:'💰',desc:'Coin emojis on the bars',           tier:5},
+  beachScreen:   {earned:false,active:false,name:"Beach Screen!",     icon:'🏖️',desc:'Tropical animated beach UI',         tier:10},
+  yarghDiscount: {earned:false,active:false,name:"YA-ARGH!",          icon:'⚓',desc:'50% shop discount — one time',       tier:15},
+  pirateQuotes:  {earned:false,active:false,name:"Meaningful Pirates", icon:'🦜',desc:'Pirate quotes every 7 rolls',        tier:20},
+  mapFinder:     {earned:false,active:false,name:"Map Finder",         icon:'🗺️',desc:'Renames title to MAP FINDER',        tier:25},
+  pirateLuck:    {earned:false,active:false,name:"PIRATE'S LUCK",     icon:'☠️',desc:"Activate for 75k+ luck — DUTCHMAN chance", tier:30},
+};
+const PIRATE_QUOTES=[
+  "🏴‍☠️ Yargh! The seas of fortune favor the bold!",
+  "🏴‍☠️ Every Common brings ye closer to DUTCHMAN's treasure!",
+  "🏴‍☠️ A pirate never stops rolling. Neither should ye.",
+  "🏴‍☠️ X marks the spot — keep rolling to find it!",
+  "🏴‍☠️ The Flying Dutchman awaits those who persist!",
+  "🏴‍☠️ Davy Jones wants your coins. Don't let him have them.",
+  "🏴‍☠️ Sail on, ye scallywag. Fortune is near!",
+  "🏴‍☠️ The rarest roll is buried treasure. Dig deeper.",
+];
+let milestoneIdx=0;
+const MILESTONES=[1000,5000,10000,25000,50000,100000,500000];
+const MS_DATA={
+  1000:{sub:'YOUR FIRST 1K!',desc:'The journey begins.',reward:500},
+  5000:{sub:'FIVE THOUSAND!',desc:'The grind is real.',reward:1500},
+  10000:{sub:'TEN THOUSAND!',desc:'You are unstoppable.',reward:3000},
+  25000:{sub:'TWENTY-FIVE K!',desc:'True dedication.',reward:8000},
+  50000:{sub:'FIFTY THOUSAND!',desc:'You\'re a legend.',reward:20000},
+  100000:{sub:'ONE HUNDRED K!',desc:'Absolute madness.',reward:50000},
+  500000:{sub:'HALF A MILLION!',desc:'You are the COIN GOD.',reward:250000},
+};
+
+// collection: track how many of each rarity name we've rolled
+const collected = {};
+R.forEach(r=>{ collected[r.name]=0; });
+
+// equipped glove id
+let equippedGlove = null;
+
+// Temporary items
+const T={reroll:0,luck:0,double:0,streak:0,magnet:0,guarantee:0,shield:0,bomb:0,frenzy:0,solarite:0,riftpull:0,luckstorm:0,fatesealer:0,voidpulse:0,mirrorroll:0,timewarp:0};
+// Permanent items
+const P={vault:false,greed:false,legend:false,oracle:false,hoarder:false,divine:false,
+         bigparticles:false,rainbow:false,void:false,inferno:false,goldtheme:false,trail:false,aurora:false,obsidian:false,
+         solbond:false,sunforge:false,momentum:false,duckcharm:false,stardrive:false,
+         coinrain:false,lucksurge:false,ultramagnet:false,
+         autoroll:false,quickroll:false,efficientroll:false,
+         goldenshield:false,cosmicboost:false};
+
+// Auto Roll state
+let autoRollMode=null; // null | 'auto' | 'efficient'
+let autoRollInterval=null;
+let quickRollEnabled=false;
+
+const histArr=[];
+
+/* ═══════ STATPASS ═══════ */
+let spXP=0; // each roll = 1 XP, tier unlocks at multiples of 10
+const SP_TIERS=[
+  {tier:5,  icon:'🦆', name:'Duck Everywhere',    desc:'Duck emojis appear on the bars',           cosmeticId:'duckEverywhere'},
+  {tier:10, icon:'💛', name:'Yellow! Screen!',     desc:'Screen turns yellow with duck background', cosmeticId:'yellowScreen'},
+  {tier:15, icon:'🧤', name:'Duck Glove Unlock',   desc:'Unlocks the Duck Glove in Gloves tab',     cosmeticId:'duckGloveUnlock'},
+  {tier:20, icon:'💬', name:'Meaningful Du-oute',  desc:'Duck gives you quotes to keep rolling',    cosmeticId:'duckQuotes'},
+  {tier:21, icon:'🪙', name:'Coins ×100',          desc:'+100 coins bonus',                         reward:100},
+  {tier:22, icon:'🪙', name:'Coins ×150',          desc:'+150 coins bonus',                         reward:150},
+  {tier:23, icon:'🪙', name:'Coins ×200',          desc:'+200 coins bonus',                         reward:200},
+  {tier:24, icon:'🪙', name:'Coins ×250',          desc:'+250 coins bonus',                         reward:250},
+  {tier:25, icon:'🦆', name:'Duck Roller',          desc:'The Stat Roller becomes the Duck Roller',  cosmeticId:'duckRoller'},
+  {tier:26, icon:'🪙', name:'Coins ×400',          desc:'+400 coins bonus',                         reward:400},
+  {tier:27, icon:'🪙', name:'Coins ×500',          desc:'+500 coins bonus',                         reward:500},
+  {tier:28, icon:'🪙', name:'Coins ×750',          desc:'+750 coins bonus',                         reward:750},
+  {tier:29, icon:'🪙', name:'Coins ×1000',         desc:'+1,000 coins bonus',                       reward:1000},
+  {tier:30, icon:'🌟', name:'ULTRA LUCK',           desc:'Temporary insane luck — 250k minimum rarity guaranteed for next 3 rolls', cosmeticId:'ultraLuck'},
+];
+const SP_MAX_TIER=30;
+const SP_XP_PER_TIER=10;
+
+// inventory of earned cosmetics { id -> { earned, active } }
+const INV={
+  duckEverywhere: {earned:false, active:false, name:'Duck Everywhere',   icon:'🦆', desc:'Duck emojis on the bars',                    tier:5},
+  yellowScreen:   {earned:false, active:false, name:'Yellow! Screen!',   icon:'💛', desc:'Yellow duck background',                      tier:10},
+  duckGloveUnlock:{earned:false, active:false, name:'Duck Glove Unlock', icon:'🧤', desc:'Duck Glove now equippable',                   tier:15},
+  duckQuotes:     {earned:false, active:false, name:'Meaningful Du-oute',icon:'💬', desc:'Duck motivational quotes every 7 rolls',      tier:20},
+  duckRoller:     {earned:false, active:false, name:'Duck Roller',       icon:'🦆', desc:'Renames Stat Roller to Duck Roller',          tier:25},
+  ultraLuck:      {earned:false, active:false, name:'ULTRA LUCK',        icon:'🌟', desc:'Activate for insane luck — 250k+ for 3 rolls',tier:30},
+};
+
+const DUCK_QUOTES=[
+  '🦆 Quack! Keep rolling, legend!',
+  '🦆 The rarest roll is just one click away!',
+  '🦆 Quack quack — greatness is earned!',
+  '🦆 Even ducks grind. Keep going!',
+  '🦆 You WILL get Sunlight Moonlight someday!',
+  '🦆 Quack! The void fears you!',
+  '🦆 Every Common brings you closer to ETERNAL!',
+  '🦆 Duck wisdom: never stop rolling.',
+];
+
+let momentumStack=0, lastCommonStreak=0;
+let duckRollsLeft=0;
+let ultraLuckRolls=0; // ULTRA LUCK tier 30 — 250k minimum for N rolls
+
+let spTierIdx=0; // which SP_TIERS index we're watching next
+
+/* ═══════ BUILD INDEX ═══════ */
+function revealHiddenRarity(name){
+  allRolledNames.add(name);
+  buildRarityIndex();
+  toast('📖 '+name+' revealed in the Index!');
+}
+
+function buildRarityIndex(){
+  const grid=document.getElementById('rarityGrid');
+  if(!grid) return;
+  grid.innerHTML='';
+  const sortedR=[...R].sort((a,b)=>a.odds-b.odds);
+  sortedR.forEach(r=>{
+    const i=R.indexOf(r);
+    const row=document.createElement('div');
+    const isHidden = r.neverIndex && !allRolledNames.has(r.name);
+    if(isHidden) return;
+    let cls='rarity-row'+(r.mutated?' mutated':'')+(r.secret?' secret':'');
+    row.className=cls; row.id='row-'+i; row.dataset.name=r.name.toLowerCase();
+    const mb=r.mutated?`<span class="mbadge">${r.parent}[M]</span>`:'';
+    const mnb=r.money?`<span class="money-badge">💰</span>`:'';
+    const scb=r.secret?`<span class="secret-badge">⭐SECRET</span>`:'';
+    const sub=r.su?`<span class="su-badge">🌐SU</span>`:'';
+    const spb=r.special?`<span class="special-badge">🌓 1 IN A MILLION</span>`:'';
+    const ulb=r.ultra?`<span class="ultra-badge">🌌 ULTRA SECRET</span>`:'';
+    const peb=r.pirateExclusive?`<span class="secret-badge" style="background:#00cc8822;color:#00cc88;border-color:#00cc8844;">⚓ PIRATE EXCLUSIVE</span>`:'';
+    const irb=r.itemRollOnly?`<span class="secret-badge" style="background:#ff004422;color:#ff6688;border-color:#ff004444;">🎰 ITEM ROLL ONLY</span>`:'';
+    row.innerHTML=`<span class="dot" style="background:${r.color};box-shadow:0 0 6px ${r.color}88"></span><span class="rn" style="color:${r.color}">${r.name}</span>${mb}${mnb}${scb}${sub}${spb}${ulb}${peb}${irb}<span class="rc">1 in ${r.odds.toLocaleString()}</span>`;
+    grid.appendChild(row);
+  });
+}
+buildRarityIndex();
+
+function filterIdx(q){const s=q.toLowerCase();document.querySelectorAll('.rarity-row').forEach(row=>row.classList.toggle('hidden',!row.dataset.name.includes(s)));}
+
+/* ═══════ TABS ═══════ */
+/* ═══════ ROLL ENGINE ═══════ */
+function weightedRoll(skipLow=false,minOdds=0){
+  let pool=R.map((_,i)=>i);
+  if(skipLow) pool=pool.filter(i=>R[i].odds>4);
+  if(minOdds) pool=pool.filter(i=>R[i].odds>=minOdds);
+  // Rift Pull: force SU-only pool
+  if(T.riftpull>0) pool=pool.filter(i=>R[i].su);
+  // Void Pulse: force SECRET+ pool
+  if(T.voidpulse>0) pool=pool.filter(i=>R[i].secret||R[i].ultra);
+  // glove luck effect
+  const gl=getGloveEffect();
+  if(gl.luckyChance && Math.random()<gl.luckyChance) pool=pool.filter(i=>R[i].odds>=6);
+  if(pool.length===0) pool=R.map((_,i)=>i); // safety fallback
+  const ws=pool.map(i=>1/R[i].odds),tot=ws.reduce((a,b)=>a+b,0);
+  const c=[]; let a=0; ws.forEach(w=>{a+=w/tot;c.push(a);});
+  const rnd=Math.random();
+  for(let i=0;i<c.length;i++) if(rnd<c[i]) return pool[i];
+  return pool[pool.length-1];
+}
+
+function getGloveEffect(){
+  if(!equippedGlove) return {};
+  const g=GLOVES.find(g=>g.id===equippedGlove);
+  return g?g.effect():{}; 
+}
+
+function doRoll(){
+  if(rolling) return; rolling=true;
+  document.getElementById('rollBtn').disabled=true;
+
+  // Quick Roll — skip animation entirely
+  if(quickRollEnabled){
+    const useLuck=T.luck>0, useDouble=T.double>0, useGuarant=T.guarantee>0;
+    let idx=weightedRoll(useLuck, useGuarant?6:0);
+    if(useGuarant){T.guarantee=0;toast('🎯 Rare+ Guarantee triggered!');}
+    if(T.riftpull>0){T.riftpull=0;toast('🌀 Rift Pull! Rolled from SU pool!');}
+    if(T.reroll>0){const idx2=weightedRoll();const better=R[idx2].odds<=R[idx].odds?idx2:idx;idx=better;T.reroll--;toast('🔄 Re-Roll used!');}
+    if(useDouble){const idx2=weightedRoll(useLuck);idx=R[idx].odds<=R[idx2].odds?idx:idx2;T.double--;if(useLuck)T.luck--;toast('✌️ Double Roll!');}
+    else if(useLuck){T.luck--;toast('🍀 Lucky Roll!');}
+    if(T.bomb>0){[weightedRoll(),weightedRoll()].forEach(i2=>{if(R[i2].odds<=R[idx].odds)idx=i2;});T.bomb--;toast('💣 Bomb Roll!');}
+    finishRoll(idx);
+    return;
+  }
+
+  // Pre-calculate result for Oracle Eye hint
+  const ultraMin = ultraLuckRolls>0 ? 250000 : 0;
+  const pirateMin = pirateLuckRolls>0 ? 75000 : 0;
+  const effectiveMin = Math.max(ultraMin, pirateMin);
+
+  // DUTCHMAN chance during PIRATE'S LUCK
+  if(pirateLuckRolls>0 && Math.random()<(1/750000)){
+    pirateLuckRolls--; updateBuffBar();
+    const dutchIdx=R.findIndex(r=>r.name==='DUTCHMAN');
+    if(dutchIdx>=0){
+      allRolledNames.add('DUTCHMAN');
+      animSpin(()=>{ finishRoll(dutchIdx); updateBuffBar(); });
+      return;
+    }
+  }
+
+  const preIdx = weightedRoll(T.luck>0, T.guarantee>0?6:effectiveMin);
+
+  animSpin(()=>{
+    const useLuck=T.luck>0, useDouble=T.double>0, useGuarant=T.guarantee>0;
+    // ULTRA LUCK / PIRATE'S LUCK — force minimum odds
+    let idx=weightedRoll(useLuck, useGuarant?6:Math.max(0,effectiveMin));
+    if(ultraLuckRolls>0){ ultraLuckRolls--; updateBuffBar(); toast('🌟 ULTRA LUCK! ('+ultraLuckRolls+' left)'); }
+    if(pirateLuckRolls>0){ pirateLuckRolls--; updateBuffBar(); toast("☠️ PIRATE'S LUCK! ("+pirateLuckRolls+" left)"); }
+    if(useGuarant){T.guarantee=0;toast('🎯 Rare+ Guarantee triggered!');}
+    if(T.riftpull>0){T.riftpull=0;toast('🌀 Rift Pull! Rolled from SU pool!');}
+    // Re-Roll: pick better
+    if(T.reroll>0){
+      const idx2=weightedRoll();
+      const better=R[idx2].odds<=R[idx].odds?idx2:idx;
+      if(better!==idx) toast('🔄 Re-Roll found rarer result!');
+      else toast('🔄 Re-Roll used — original kept!');
+      idx=better; T.reroll--;
+    }
+    if(useDouble){
+      const idx2=weightedRoll(useLuck);
+      idx=R[idx].odds<=R[idx2].odds?idx:idx2;
+      T.double--; if(useLuck)T.luck--;
+      toast('✌️ Double Roll! Kept rarest!');
+    } else if(useLuck){T.luck--;toast('🍀 Lucky Roll! Low tiers skipped!');}
+    // Bomb: roll 3 times keep best
+    if(T.bomb>0){
+      [weightedRoll(),weightedRoll()].forEach(i2=>{ if(R[i2].odds<=R[idx].odds) idx=i2; });
+      T.bomb--; toast('💣 Bomb Roll! Best of 3!');
+    }
+    // Glove random double (Void / Tempest)
+    const gl=getGloveEffect();
+    if(gl.randomDouble && Math.random()<gl.randomDouble){
+      const idx2=weightedRoll(); if(R[idx2].odds<=R[idx].odds) idx=idx2;
+      toast('🎲 Glove activated extra roll!');
+    }
+    finishRoll(idx);
+    updateBuffBar();
+  }, preIdx);
+}
+
+function animSpin(cb, oracleIdx=null){
+  // Oracle Eye — 50/50 hint during spin, disabled with quick roll
+  if(P.oracle && !quickRollEnabled && oracleIdx!==null && (Math.random()<0.5 || getGloveEffect().forceOracle)){
+    const r=R[oracleIdx];
+    let hint='';
+    if(r.ultra)              hint='Something UNOBTAINABLE...';
+    else if(r.special)       hint='Something BEYOND REALITY...';
+    else if(r.odds>=500000)  hint='Something LEGENDARY...';
+    else if(r.odds>=50000)   hint='Something SECRET...';
+    else if(r.odds>=5000)    hint='Something GREAT...';
+    else if(r.odds>=500)     hint='Something DECENT...';
+    else                     hint='Something BAD...';
+    const hintEl=document.getElementById('oracleHint');
+    const hintTxt=document.getElementById('oracleHintText');
+    hintTxt.textContent=hint;
+    hintEl.style.display='block';
+    setTimeout(()=>{ hintEl.style.display='none'; }, 3500);
+  }
+  let spin=0, hue=0;
+  const max=P.rainbow?22:14;
+  const iv=setInterval(()=>{
+    const f=Math.floor(Math.random()*R.length);
+    const fake=P.rainbow?{...R[f],color:`hsl(${hue=(hue+18)%360},100%,65%)`}:R[f];
+    showResult(fake,false);
+    if(++spin>=max){clearInterval(iv);cb();}
+  },55);
+}
+
+function finishRoll(idx){
+  const r=R[idx];
+  rollCount++;
+
+  // Pity shield
+  if(T.shield>0&&r.odds<=2){T.shield=0;coins+=40;toast('🛡️ Pity Shield! +40 refund');}
+
+  // track collection
+  collected[r.name]=(collected[r.name]||0)+1;
+
+  showResult(r,true);
+  addHistory(r);
+  updateRarest(r);
+  gainSpXP(1);
+  gainPirateXP(1);
+  if(INV.duckQuotes.active && rollCount%7===0) showDuckQuote();
+  if(!INV.duckQuotes.active && PIRATE_INV.pirateQuotes?.active && rollCount%7===0) showDuckQuote();
+  saveGame();
+
+  /* COIN CALC — v1.6.0 rebalanced */
+  // Smoother log curve: log2(odds)^1.4 * 10 gives better scaling
+  let base=Math.max(10, Math.floor(Math.pow(Math.log2(r.odds),1.4)*10));
+  if(r.mutated)      base=Math.floor(base*3.5);
+  if(r.odds>=200)    base=Math.floor(base*1.5);  // was 300×1.8
+  if(r.odds>=1000)   base=Math.floor(base*2.5);  // was ×3
+  if(r.odds>=5000)   base=Math.floor(base*3.5);  // was ×4
+  if(r.odds>=20000)  base=Math.floor(base*2);    // NEW: extra boost for ultra-rare
+  if(r.secret)       base=Math.floor(base*6);
+  if(r.ultra)        base=Math.floor(base*15);   // was ×10
+  if(P.vault)        base+=10;                   // was +8
+  if(P.hoarder&&r.odds>=6) base=Math.floor(base*1.5);
+  if(P.divine&&r.secret)   base=Math.floor(base*2);
+  if(T.solarite>0 && r.su){ base=Math.floor(base*3); T.solarite--; }
+  if(P.sunforge && r.su && r.mutated) base=Math.floor(base*4);
+  if(P.stardrive && r.secret) base=Math.floor(base*1.1);
+  if(P.duckcharm && r.name==='Common'){ coins+=20; toast('🦆 Duck Charm! +20 coins!'); } // was +15
+  // momentum: track non-common streak
+  if(P.momentum){
+    if(r.name==='Common'){ lastCommonStreak=0; momentumStack=0; }
+    else {
+      lastCommonStreak++;
+      if(lastCommonStreak%10===0){ momentumStack=Math.min(momentumStack+2,40); toast('🚀 Momentum! +2% ('+momentumStack+'% total)'); }
+    }
+    if(momentumStack>0) base=Math.floor(base*(1+momentumStack/100));
+  }
+
+  // glove bonuses
+  const gl=getGloveEffect();
+  if(gl.coinBonus)   base+=gl.coinBonus;
+  if(gl.burnBoost && (r.name==='Burn'||r.name==='LAVA')) base=Math.floor(base*gl.burnBoost);
+  if(gl.voidBoost && (r.name==='Void'||r.name==='Abyss')) base=Math.floor(base*gl.voidBoost);
+  if(gl.crystalBoost && (r.name==='Crystal'||r.name==='Diamond'||r.name==='Lapis')) base=Math.floor(base*gl.crystalBoost);
+  if(gl.diabloBoost && (r.name==='Diablo'||r.name==='EL DIABLO')) base=Math.floor(base*gl.diabloBoost);
+  if(gl.secretBoost && r.secret) base=Math.floor(base*gl.secretBoost);
+  if(gl.secretBoost && r.ultra) base=Math.floor(base*gl.secretBoost);
+  // Storm Glove — cosmic boost + common reroll
+  if(gl.cosmicMult && cosmicNames.includes(r.name)) base=Math.floor(base*gl.cosmicMult);
+  if(gl.commonReroll && r.name==='Common' && Math.random()<gl.commonReroll){ toast('⛈️ Storm Glove: Common rerolled!'); rolling=false; document.getElementById('rollBtn').disabled=false; setTimeout(()=>doRoll(),300); return; }
+  // Phantom Glove — phantom/abyss/nether boost + force oracle
+  const phantomNames=['Phantom','Abyss','NETHER'];
+  if(gl.phantomBoost && phantomNames.includes(r.name)) base=Math.floor(base*gl.phantomBoost);
+  if(gl.forceOracle && P.oracle){ /* oracle always triggers — handled in animSpin via forceOracle flag */ }
+  // Ascendant Glove — ascendant boost
+  const ascendantNames=['Ascendant','Warpzone','Supernova Rift'];
+  if(gl.ascendantBoost && ascendantNames.includes(r.name)) base=Math.floor(base*gl.ascendantBoost);
+  // Undefined Glove — massive boost on Undefined, 1% chance any roll becomes Undefined
+  if(gl.undefinedChance && Math.random()<gl.undefinedChance){
+    const uIdx=R.findIndex(r=>r.name==='Undefined');
+    if(uIdx>=0){ toast('❓ UNDEFINED GLOVE: Roll became Undefined!'); finishRoll(uIdx); return; }
+  }
+  if(gl.undefinedBoost && r.name==='Undefined') base=Math.floor(base*gl.undefinedBoost);
+  if(gl.solarBoost && (r.name==='Sol'||r.name==='Solar Flare'||r.name==='SUN GOD')) base=Math.floor(base*gl.solarBoost);
+  if(gl.stormBoost && (r.name==='Aqua'||r.name==='STORM')) base=Math.floor(base*gl.stormBoost);
+  if(gl.suBoost && r.su) base=Math.floor(base*gl.suBoost);
+  if(gl.moneyBoost && r.money) base=Math.floor(base*gl.moneyBoost);
+  if(gl.ultraBoost && r.ultra) base=Math.floor(base*gl.ultraBoost);
+  if(gl.bankEvery && rollCount%gl.bankEvery===0){ coins+=gl.bankAmt; toast('💸 Greed Glove: +'+gl.bankAmt+' banked!'); }
+  // Fortune glove auto lucky
+  if(gl.autoLucky && Math.random()<gl.autoLucky && T.luck<5){ T.luck++; toast('🎰 Fortune Glove: Lucky Roll triggered!'); updateBuffBar(); }
+  // Fate glove skip low
+  if(gl.skipLow && (r.name==='Common'||r.name==='Uncommon') && Math.random()<gl.skipLow){
+    toast('🎴 Fate Glove: Skipped low roll — rerolling!');
+    rolling=false;
+    document.getElementById('rollBtn').disabled=false;
+    setTimeout(()=>doRoll(),300); return;
+  }
+  // Duck glove: 1000+ rarity = duck appears on roll button for 5 rolls
+  if(gl.duckRareThreshold && r.odds>=gl.duckRareThreshold){
+    duckRollsLeft=5;
+    const btn=document.getElementById('rollBtn');
+    if(btn){ btn.textContent='🦆 ROLL!'; }
+    toast('🦆 Duck activated! Roll button ducked for 5 rolls!');
+  }
+  if(duckRollsLeft>0){
+    duckRollsLeft--;
+    if(duckRollsLeft===0){
+      const btn=document.getElementById('rollBtn');
+      if(btn) btn.textContent='🎲 ROLL!';
+    }
+  }
+  const mult=gl.coinMult||1;
+  base=Math.floor(base*mult);
+
+  let moneyBonus=0;
+  if(r.money){
+    moneyBonus=Math.floor(base*2)+Math.floor(r.odds/2);
+    if(T.magnet>0){moneyBonus+=80;T.magnet--;toast('🧲 Magnet! +80!');}
+    if(P.greed) moneyBonus=Math.floor(moneyBonus*2);
+    if(gl.moneyFlat) moneyBonus+=gl.moneyFlat;
+    if(gl.sparkFlat && r.name==='Spark') moneyBonus+=gl.sparkFlat;
+  }
+  // glove common refund
+  if(gl.commonRefund&&r.name==='Common'){coins+=30;toast('🍀 Lucky Glove: Common refund +30!');}
+
+  if(T.streak>0){base=Math.floor(base*1.5);moneyBonus=Math.floor(moneyBonus*1.5);T.streak--;}
+
+  let total=base+moneyBonus;
+  if(P.legend) total=Math.floor(total*1.25);
+  coins+=total;
+  totalCoinsEarned+=total;
+  allRolledNames.add(r.name);
+
+  // free reroll from iron glove / sols united glove
+  if(gl.freeRerollEvery && rollCount%gl.freeRerollEvery===0){T.reroll++;toast('⚙️ Glove: Free Re-Roll earned!');updateBuffBar();}
+  if(P.coinrain && rollCount%20===0){ coins+=500; toast('🌧️ Coin Rain! +500!'); updateCoins(); }
+  if(P.lucksurge && r.secret){ base=Math.floor(base*2); }
+  if(P.lucksurge && Math.random()<0.05 && T.luck<5){ T.luck++; toast('⚡ Luck Surge triggered!'); updateBuffBar(); }
+  if(P.ultramagnet && r.money){ base+=500; toast('🧲 Ultra Magnet! +500!'); }
+  // Cosmic Boost — 3x coins for Cosmic Storm rarities
+  const cosmicNames=['Vortex','Shatter','STORM SURGE','Radium','Phantom Core','NETHER','Ascendant','Warpzone','APEX VOID','Supernova Rift'];
+  if(P.cosmicboost && cosmicNames.includes(r.name)){ base=Math.floor(base*3); toast('🌌 Cosmic Boost! 3x coins!'); }
+  // Mirror Roll — 2x coins on next SECRET
+  if(T.mirrorroll>0 && r.secret){ base=Math.floor(base*2); T.mirrorroll--; toast('🪞 Mirror Roll! SECRET doubled!'); updateBuffBar(); }
+  // Void Pulse decrement
+  if(T.voidpulse>0){ T.voidpulse--; updateBuffBar(); if(T.voidpulse===0) toast('💠 Void Pulse expired!'); }
+  // Golden Shield — free reroll every 50 rolls
+  if(P.goldenshield && rollCount%50===0){ T.reroll++; toast('🛡️ Golden Shield: Free Re-Roll!'); updateBuffBar(); }
+  // Time Warp — reroll last result once
+  if(T.timewarp>0 && r.odds<100){ T.timewarp--; toast('⏳ Time Warp activated! Re-rolling...'); updateBuffBar(); rolling=false; document.getElementById('rollBtn').disabled=false; setTimeout(()=>doRoll(),500); return; }
+  // luckstorm — all rolls count as lucky
+  if(T.luckstorm>0){ T.luckstorm--; if(T.luck===0){ T.luck=1; } }
+  // fatesealer — skip if below Rare
+  if(T.fatesealer>0 && r.odds<10){
+    T.fatesealer--;
+    updateBuffBar();
+    toast('🎴 Fate Sealer: Re-rolling for Rare+!');
+    rolling=false;
+    document.getElementById('rollBtn').disabled=false;
+    setTimeout(()=>doRoll(),300);
+    return;
+  }
+  // sol bond: free lucky every 25 rolls
+  if(P.solbond && rollCount%25===0){T.luck++;toast('🔗 Sol Bond: Free Lucky Roll granted!');updateBuffBar();}
+
+  const bEl=document.getElementById('rbonus');
+  bEl.style.display='';
+  bEl.textContent=r.money?`💰 MONEY BONUS  +${total.toLocaleString()} 🪙`:`+${total.toLocaleString()} 🪙`;
+  bEl.style.color=r.money?'#ffcc00':r.color;
+  setTimeout(()=>{bEl.style.display='none';},2000);
+
+  spawnP(r.color,r.mutated||r.secret,r.odds);
+  highlightRow(idx);
+  updateCoins();
+  checkMilestone();
+  checkItemRolls();
+  checkAchievements();
+  rolling=false;
+  // Quick Roll debuff — 1 second cooldown before next click
+  if(quickRollEnabled){
+    document.getElementById('rollBtn').disabled=true;
+    setTimeout(()=>{ document.getElementById('rollBtn').disabled=false; }, 1000);
+  } else {
+    document.getElementById('rollBtn').disabled=false;
+  }
+  if(autoRollMode){ return; }
+  if(autoQ>0){
+    autoQ--;
+    if(T.frenzy>0){ T.frenzy--; }
+    if(T.frenzy===0) updateBuffBar(); // clear frenzy chip when done
+    setTimeout(doRoll, autoQ>0&&T.frenzy>0?220:420);
+  } else {
+    if(T.frenzy>0){ T.frenzy=0; updateBuffBar(); } // safety clear
+  }
+}
+
+/* ═══════ DISPLAY ═══════ */
+function showResult(r,final){
+  const box=document.getElementById('resultBox');
+  const lbl=document.getElementById('rlabel'), oEl=document.getElementById('rodds');
+  document.getElementById('rph').style.display='none';
+  lbl.style.display=oEl.style.display='';
+  lbl.textContent=r.emoji+' '+r.name;
+  lbl.style.color=r.color; lbl.style.textShadow=`0 0 22px ${r.color}99`;
+  oEl.textContent='1 in '+r.odds.toLocaleString()+' chance';
+  box.style.borderColor=r.color+'77';
+  box.style.background=''; box.style.boxShadow='';
+  if(P.void)     box.style.background='radial-gradient(ellipse,#0a0a22,#0d0d1a)';
+  if(P.goldtheme)box.style.background='radial-gradient(ellipse,#1a1200,#0d0d1a)';
+  if(P.aurora)   box.style.background='radial-gradient(ellipse,#001a14,#0d0d1a)';
+  if(P.obsidian) box.style.background='radial-gradient(ellipse,#0d0019,#0d0d1a)';
+  if(P.inferno)  box.style.boxShadow=`0 0 34px ${r.color}66,inset 0 0 22px rgba(255,80,0,.1)`;
+  if(final){box.classList.remove('glow','shimmer');void box.offsetWidth;box.classList.add('glow','shimmer');}
+}
+
+function highlightRow(idx){
+  document.querySelectorAll('.rarity-row').forEach(r=>r.classList.remove('active'));
+  const row=document.getElementById('row-'+idx);
+  if(row){row.classList.add('active');row.style.borderColor=R[idx].color+'99';setTimeout(()=>{row.style.borderColor='';},1800);}
+}
+
+function addHistory(r){
+  histArr.unshift(r); if(histArr.length>32) histArr.pop();
+  const c=document.getElementById('history'); c.innerHTML='';
+  histArr.forEach(h=>{
+    const t=document.createElement('span'); t.className='htag';
+    t.textContent=h.emoji+' '+h.name; t.style.color=h.color; t.style.borderColor=h.color+'55';
+    c.appendChild(t);
+  });
+}
+
+function updateCoins(){
+  const f=coins.toLocaleString();
+  document.getElementById('coinsDisp').textContent=f;
+  document.getElementById('shopCoins').textContent=f;
+  updateNextMs();
+}
+function updateNextMs(){
+  const ms=MILESTONES[milestoneIdx];
+  document.getElementById('nextMs').textContent=ms?ms.toLocaleString():'MAX';
+}
+function updateBuffBar(){
+  const bar=document.getElementById('buffBar'); bar.innerHTML='';
+  const add=(icon,lbl,color)=>{const c=document.createElement('span');c.className='buff-chip';c.textContent=icon+' '+lbl;c.style.color=color;c.style.borderColor=color+'66';bar.appendChild(c);};
+  if(T.reroll>0)    add('🔄','Re-Roll ×'+T.reroll,'#cc44ff');
+  if(T.luck>0)      add('🍀','Lucky ×'+T.luck,'#ffcc00');
+  if(T.double>0)    add('✌️','Double ×'+T.double,'#4488ff');
+  if(T.streak>0)    add('🔥','Streak '+T.streak+'r','#ff6622');
+  if(T.magnet>0)    add('🧲','Magnet '+T.magnet+'r','#ffd700');
+  if(T.guarantee>0) add('🎯','Guaranteed','#00ffaa');
+  if(T.shield>0)    add('🛡️','Shield','#e8e8ff');
+  if(T.bomb>0)      add('💣','Bomb ×'+T.bomb,'#ff4444');
+  if(T.frenzy>0)    add('🌀','Frenzy','#ff88ff');
+  if(T.solarite>0)  add('☀️','Solarite '+T.solarite+'r','#ffdd44');
+  if(T.riftpull>0)  add('🌀','Rift Pull','#ff00ff');
+  if(T.luckstorm>0) add('🍀','Luck Storm '+T.luckstorm+'r','#00ff88');
+  if(T.fatesealer>0)add('🎴','Fate Sealer '+T.fatesealer+'r','#aa44ff');
+  if(T.voidpulse>0) add('💠','Void Pulse '+T.voidpulse+'r','#8844ff');
+  if(T.mirrorroll>0)add('🪞','Mirror Roll','#44ffcc');
+  if(T.timewarp>0)  add('⏳','Time Warp','#ffaa00');
+  if(ultraLuckRolls>0) add('🌟','ULTRA LUCK '+ultraLuckRolls+'r','#ffffff');
+  if(pirateLuckRolls>0) add("☠️","PIRATE'S LUCK "+pirateLuckRolls+'r','#c8a046');
+  if(P.legend)      add('👑','Legend','#ff88ff');
+  if(P.greed)       add('💰','Greed','#ffcc00');
+  if(P.vault)       add('🏦','Vault','#55dd55');
+  if(P.hoarder)     add('🏺','Hoarder','#d4af37');
+  if(equippedGlove){const g=GLOVES.find(g=>g.id===equippedGlove);if(g)add('🧤',g.name,g.color);}
+}
+function updateActiveGloveBar(){
+  const el=document.getElementById('activeGloveBar');
+  const el2=document.getElementById('equippedLabel');
+  if(equippedGlove){
+    const g=GLOVES.find(g=>g.id===equippedGlove);
+    const txt=`🧤 Equipped: ${g.name} — ${g.bonus}`;
+    el.textContent=txt; el2.textContent=txt;
+  } else {
+    el.textContent='No glove equipped';
+    el2.textContent='No glove equipped';
+  }
+}
+
+/* ═══════ MILESTONES ═══════ */
+function checkMilestone(){
+  if(milestoneIdx>=MILESTONES.length) return;
+  if(coins>=MILESTONES[milestoneIdx]){
+    const ms=MILESTONES[milestoneIdx]; milestoneIdx++;
+    const d=MS_DATA[ms]||{sub:'MILESTONE!',desc:'Keep rolling!',reward:Math.floor(ms/2)};
+    document.getElementById('csNum').textContent=ms.toLocaleString();
+    document.getElementById('csSub').textContent=d.sub;
+    document.getElementById('csDesc').textContent=d.desc;
+    document.getElementById('csReward').textContent='🎁 +'+d.reward.toLocaleString()+' Bonus Coins!';
+    document.getElementById('cutscene').dataset.reward=d.reward;
+    document.getElementById('cutscene').classList.add('active');
+    startFW();
+  }
+}
+function closeCutscene(){
+  const cs=document.getElementById('cutscene');
+  coins+=parseInt(cs.dataset.reward||0);
+  updateCoins(); cs.classList.remove('active'); stopFW();
+  toast('🎁 Milestone coins claimed!');
+}
+
+let fwOn=false,fwPts=[];
+const fwC=document.getElementById('fwCvs'),fwX=fwC.getContext('2d');
+const rszFW=()=>{fwC.width=window.innerWidth;fwC.height=window.innerHeight;};
+rszFW(); window.addEventListener('resize',rszFW);
+function startFW(){fwOn=true;fwPts=[];animFW();}
+function stopFW(){fwOn=false;fwX.clearRect(0,0,fwC.width,fwC.height);}
+function animFW(){
+  if(!fwOn)return;
+  fwX.fillStyle='rgba(0,0,0,.16)';fwX.fillRect(0,0,fwC.width,fwC.height);
+  if(Math.random()<.09){
+    const hue=Math.random()*360,cx=fwC.width*.15+Math.random()*fwC.width*.7,cy=fwC.height*.08+Math.random()*fwC.height*.5;
+    for(let i=0;i<65;i++){const a=Math.random()*Math.PI*2,sp=1.5+Math.random()*7;fwPts.push({x:cx,y:cy,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:1,decay:.014+Math.random()*.012,color:`hsl(${hue+Math.random()*40},100%,65%)`,size:1.5+Math.random()*3});}
+  }
+  fwPts=fwPts.filter(p=>p.life>0);
+  fwPts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.06;p.life-=p.decay;fwX.globalAlpha=Math.max(0,p.life);fwX.fillStyle=p.color;fwX.shadowColor=p.color;fwX.shadowBlur=6;const r=Math.max(0,p.size*p.life);fwX.beginPath();fwX.arc(p.x,p.y,r,0,Math.PI*2);fwX.fill();});
+  fwX.globalAlpha=1;fwX.shadowBlur=0;requestAnimationFrame(animFW);
+}
+
+/* ═══════ SHOP ═══════ */
+function buy(id,price){
+  // YA-ARGH 50% discount
+  const finalPrice = window._yarghActive ? Math.floor(price*0.5) : price;
+  if(coins<finalPrice){toast('❌ Not enough coins!');return;}
+  if(id in P && P[id]===true){toast('✅ Already owned!');return;}
+  coins-=finalPrice;
+  const card=document.getElementById('sc-'+id);
+  if(id==='reroll')   {T.reroll++;   setStack(card,T.reroll);  toast('🔄 Re-Roll ×'+T.reroll+'!');}
+  else if(id==='luck')      {T.luck++;    setStack(card,T.luck);   toast('🍀 Lucky Roll ×'+T.luck+'!');}
+  else if(id==='double')    {T.double++;  setStack(card,T.double); toast('✌️ Double Roll ×'+T.double+'!');}
+  else if(id==='streak')    {T.streak+=5; setStack(card,T.streak); toast('🔥 Streak! 1.5× for 5 rolls!');}
+  else if(id==='magnet')    {T.magnet+=5; setStack(card,T.magnet); toast('🧲 Magnet! +80 on 5 money rolls!');}
+  else if(id==='guarantee') {T.guarantee=1;setStack(card,1);       toast('🎯 Rare+ Guarantee armed!');}
+  else if(id==='shield')    {T.shield=1;  setStack(card,1);        toast('🛡️ Pity Shield armed!');}
+  else if(id==='autoroll')  {autoQ+=5;    toast('⚡ Auto-rolling 5!'); if(!rolling)doRoll();}
+  else if(id==='bomb')      {T.bomb++;    setStack(card,T.bomb);   toast('💣 Bomb Roll ×'+T.bomb+'!');}
+  else if(id==='frenzy')    {autoQ+=10;T.frenzy=10; toast('🌀 FRENZY! 10 fast rolls!'); if(!rolling)doRoll();}
+  else if(id==='solarite')  {T.solarite+=8; setStack(card,T.solarite); toast('☀️ Solarite Boost! SU 3× for 8 rolls!');}
+  else if(id==='riftpull')  {T.riftpull=1;  setStack(card,1);           toast('🌀 Rift Pull armed! Next roll = SU only!');}
+  else if(id==='luckstorm')   {T.luckstorm=10; setStack(card,10);  toast('🍀 Luck Storm! Next 10 rolls are Lucky!');}
+  else if(id==='fatesealer')  {T.fatesealer=5; setStack(card,5);   toast('🎴 Fate Sealer! Next 5 rolls guaranteed Rare+!');}
+  else if(id==='autoroll')    {P.autoroll=true; setOwned(card); updateAutoRollUI(); toast('🔄 Auto Roll unlocked! Head to ⚙️ Auto tab!');}
+  else if(id==='goldenshield') {P.goldenshield=true; setOwned(card); toast('🛡️ Golden Shield! Free Re-Roll every 50 rolls!');}
+  else if(id==='cosmicboost')  {P.cosmicboost=true;  setOwned(card); toast('🌌 Cosmic Boost! Cosmic Storm rarities 3x coins!');}
+  else if(id==='voidpulse')    {T.voidpulse=5;  setStack(card,5);  toast('💠 Void Pulse! Next 5 rolls from SECRET+ pool!');}
+  else if(id==='mirrorroll')   {T.mirrorroll=1; setStack(card,1);  toast('🪞 Mirror Roll! Next SECRET roll doubled!');}
+  else if(id==='timewarp')     {T.timewarp=1;   setStack(card,1);  toast('⏳ Time Warp ready! Next roll can be rewound!');}
+  else if(id==='quickroll')   {P.quickroll=true; setOwned(card); updateAutoRollUI(); toast('⚡ Quick Roll unlocked! Head to ⚙️ Auto tab!');}
+  else if(id==='efficientroll'){P.efficientroll=true; setOwned(card); updateAutoRollUI(); toast('🚀 Efficient Roll unlocked! Head to ⚙️ Auto tab!');}
+  else if(id in P)          {P[id]=true;  setOwned(card);          toast('✅ '+id+' unlocked!');}
+  updateCoins(); updateBuffBar(); checkItemRolls();
+}
+
+function setOwned(card){if(!card)return;card.classList.add('sdisabled');const btn=card.querySelector('.bbtn');if(btn)btn.disabled=true;let b=card.querySelector('.owned-tag');if(!b){b=document.createElement('div');b.className='owned-tag';b.textContent='OWNED';card.appendChild(b);}}
+function setStack(card,n){if(!card)return;let b=card.querySelector('.stack-tag');if(!b){b=document.createElement('div');b.className='stack-tag';card.appendChild(b);}b.textContent='×'+n;}
+
+/* ═══════ GLOVES ═══════ */
+function canUnlock(glove){
+  return glove.reqs.every(req=>(collected[req.name]||0)>=req.count);
+}
+
+function renderGloves(){
+  // collection bar
+  const col=document.getElementById('gCollection'); col.innerHTML='';
+  // just show relevant rarity names
+  const relevantNames=new Set();
+  GLOVES.forEach(g=>g.reqs.forEach(r=>relevantNames.add(r.name)));
+  relevantNames.forEach(name=>{
+    const rDef=R.find(r=>r.name===name); if(!rDef)return;
+    const count=collected[name]||0;
+    const tag=document.createElement('span');
+    tag.className='gcollect-tag'+(count>0?' owned':'');
+    tag.textContent=rDef.emoji+' '+name+' ×'+count;
+    tag.style.color=rDef.color; tag.style.borderColor=rDef.color+(count>0?'88':'33');
+    col.appendChild(tag);
+  });
+
+  // glove cards
+  const list=document.getElementById('gloveList'); list.innerHTML='';
+  GLOVES.forEach(g=>{
+    const unlocked=canUnlock(g);
+    const equipped=equippedGlove===g.id;
+    const card=document.createElement('div');
+    card.className='gcard'+(unlocked?'':' glocked')+(equipped?' gequipped':'');
+    card.style.borderColor=equipped?g.color:'#1a1a2e';
+
+    const reqHTML=g.reqs.map(req=>{
+      const have=collected[req.name]||0;
+      const met=have>=req.count;
+      const rDef=R.find(r=>r.name===req.name);
+      return `<span class="req-item ${met?'met':'unmet'}">${rDef?rDef.emoji:''} ${req.count} ${req.name} (${have}/${req.count})</span>`;
+    }).join('');
+
+    card.innerHTML=`
+      ${equipped?'<div class="equipped-badge">EQUIPPED</div>':(!unlocked?'<div class="locked-badge">🔒 LOCKED</div>':'')}
+      <div class="gcard-header">
+        <div class="gcard-icon" style="color:${g.color}">${g.icon}</div>
+        <div class="gcard-info">
+          <div class="gcard-name" style="color:${g.color}">${g.name}</div>
+          <div class="gcard-tier" style="color:${g.color}">${g.tier}</div>
+        </div>
+      </div>
+      <div class="gcard-bonus">✦ ${g.bonus}</div>
+      <div class="gcard-reqs">Requirements: ${reqHTML}</div>
+      <div class="gcard-btns">
+        ${unlocked
+          ? equipped
+            ? `<button class="gbtn gbtn-unequip" onclick="unequipGlove()">UNEQUIP</button>`
+            : `<button class="gbtn gbtn-equip" onclick="equipGlove('${g.id}')">EQUIP</button>`
+          : `<button class="gbtn gbtn-equip" disabled style="opacity:.3">LOCKED</button>`
+        }
+      </div>`;
+    list.appendChild(card);
+  });
+}
+
+function equipGlove(id){
+  // If equipping duck glove while lucky is on — auto replace
+  if(id==='duck' && equippedGlove==='lucky'){
+    toast('🦆 Duck Glove replaced Lucky Glove!');
+  }
+  // If equipping lucky glove while duck is on — block it
+  if(id==='lucky' && equippedGlove==='duck'){
+    toast('❌ Duck Glove is active! Unequip it first.');
+    return;
+  }
+  equippedGlove=id;
+  const g=GLOVES.find(g=>g.id===id);
+  toast('🧤 '+g.name+' equipped!');
+  updateActiveGloveBar(); updateBuffBar(); renderGloves(); checkItemRolls();
+}
+function unequipGlove(){
+  equippedGlove=null;
+  toast('🧤 Glove unequipped');
+  updateActiveGloveBar(); updateBuffBar(); renderGloves(); checkItemRolls();
+}
+
+/* toast */
+let ttimer;
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(ttimer);ttimer=setTimeout(()=>el.classList.remove('show'),2400);}
+
+/* ═══════ PARTICLES ═══════ */
+const cvs=document.getElementById('particles'),pctx=cvs.getContext('2d');
+cvs.width=window.innerWidth;cvs.height=window.innerHeight;
+window.addEventListener('resize',()=>{cvs.width=window.innerWidth;cvs.height=window.innerHeight;});
+let pts=[];
+function spawnP(color,big,odds){
+  const cx=cvs.width/2,cy=cvs.height/2;
+  const mega=P.bigparticles||P.trail;
+  const cnt=big?(mega?280:160):odds>=1000?(mega?160:100):odds>=100?(mega?100:65):(mega?75:48);
+  for(let i=0;i<cnt;i++){
+    const a=Math.random()*Math.PI*2,sp=(big?3.5:2.5)+Math.random()*(big?10:7)*(mega?1.5:1);
+    pts.push({x:cx,y:cy,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-(big?3.5:2),life:1,decay:.011+Math.random()*.015,size:(mega?5:3)+Math.random()*(big?8:5),color:(big&&Math.random()>.45)?'#ffffff':color});
+  }
+  requestAnimationFrame(animP);
+}
+function animP(){
+  pctx.clearRect(0,0,cvs.width,cvs.height);
+  pts=pts.filter(p=>p.life>0);
+  pts.forEach(p=>{
+    p.x+=p.vx;p.y+=p.vy;p.vy+=.1;p.life-=p.decay;
+    pctx.globalAlpha=Math.max(0,p.life);pctx.fillStyle=p.color;pctx.shadowColor=p.color;pctx.shadowBlur=8;
+    const r=Math.max(0,p.size*p.life);pctx.beginPath();pctx.arc(p.x,p.y,r,0,Math.PI*2);pctx.fill();
+  });
+  pctx.globalAlpha=1;pctx.shadowBlur=0;
+  if(pts.length>0)requestAnimationFrame(animP);
+}
+
+
+/* ═══════════════════════════════
+   SAVE / LOAD
+═══════════════════════════════ */
+const SAVE_KEY = 'statroller-save-v160b';
+
+function getSaveData(){
+  return {
+    uid: currentUser?.uid || null,
+    coins, rollCount, milestoneIdx, equippedGlove,
+    T:{...T}, P:{...P},
+    collected:{...collected},
+    histArr: histArr.slice(0,20).map(r=>r.name),
+    rarestRolled: rarestRolled ? rarestRolled.name : null,
+    spXP,
+    ultraLuckRolls,
+    ultraLuckUsed,
+    totalCoinsEarned,
+    allRolledNames:[...allRolledNames],
+    itemRollHits,
+    unlockedAchievements:[...unlockedAchievements],
+    inv: Object.fromEntries(Object.entries(INV).map(([k,v])=>[k,{earned:v.earned,active:v.active}])),
+    // Pirate Event
+    pirateXP,
+    pirateRestarts,
+    pirateLuckRolls,
+    pirateLuckUsed,
+    pirateInv: Object.fromEntries(Object.entries(PIRATE_INV).map(([k,v])=>[k,{earned:v.earned,active:v.active,used:v.used}])),
+  };
+}
+
+function applySaveData(d){
+  if(!d) return;
+  coins = d.coins||0;
+  rollCount = d.rollCount||0;
+  milestoneIdx = d.milestoneIdx||0;
+  equippedGlove = d.equippedGlove||null;
+  if(d.T) Object.assign(T, d.T);
+  if(d.P) Object.assign(P, d.P);
+  if(d.collected) Object.assign(collected, d.collected);
+  if(d.rarestRolled){
+    const r=R.find(r=>r.name===d.rarestRolled);
+    if(r) rarestRolled=r;
+  }
+  if(d.spXP) spXP=d.spXP;
+  if(d.ultraLuckRolls) ultraLuckRolls=d.ultraLuckRolls;
+  if(d.ultraLuckUsed) ultraLuckUsed=d.ultraLuckUsed;
+  if(d.totalCoinsEarned) totalCoinsEarned=d.totalCoinsEarned;
+  if(d.allRolledNames) allRolledNames=new Set(d.allRolledNames);
+  if(d.itemRollHits) Object.assign(itemRollHits,d.itemRollHits);
+  if(d.unlockedAchievements) unlockedAchievements=new Set(d.unlockedAchievements);
+  if(d.inv) Object.entries(d.inv).forEach(([k,v])=>{ if(INV[k]){ INV[k].earned=v.earned; INV[k].active=v.active; } });
+  // Pirate Event
+  if(d.pirateXP) pirateXP=d.pirateXP;
+  if(d.pirateRestarts) pirateRestarts=d.pirateRestarts;
+  if(d.pirateLuckRolls) pirateLuckRolls=d.pirateLuckRolls;
+  if(d.pirateLuckUsed) pirateLuckUsed=d.pirateLuckUsed;
+  if(d.pirateInv) Object.entries(d.pirateInv).forEach(([k,v])=>{ if(PIRATE_INV[k]){ PIRATE_INV[k].earned=v.earned; PIRATE_INV[k].active=v.active; if(v.used!==undefined) PIRATE_INV[k].used=v.used; } });
+  // restore owned shop cards
+  Object.keys(P).forEach(id=>{
+    if(P[id]===true){
+      const card=document.getElementById('sc-'+id);
+      if(card) setOwned(card);
+    }
+  });
+  // restore stack tags
+  Object.keys(T).forEach(id=>{
+    if(T[id]>0){
+      const card=document.getElementById('sc-'+id);
+      if(card) setStack(card,T[id]);
+    }
+  });
+  updateCoins(); updateBuffBar(); updateActiveGloveBar();
+  renderStatPass(); applyCosmetics(); buildRarityIndex();
+}
+
+/* ═══════════════════════════════
+   FIREBASE AUTH
+═══════════════════════════════ */
+let authMode='login';
+
+function switchAuthTab(mode){
+  authMode=mode;
+  document.getElementById('authTabLogin').classList.toggle('active',mode==='login');
+  document.getElementById('authTabSignup').classList.toggle('active',mode==='signup');
+  document.getElementById('authName').style.display=mode==='signup'?'block':'none';
+  document.getElementById('authSubmitBtn').textContent=mode==='login'?'LOG IN ⚔️':'SIGN UP 🎲';
+  document.getElementById('authErr').textContent='';
+  document.getElementById('authOk').textContent='';
+}
+
+async function authSubmit(){
+  const email=document.getElementById('authEmail').value.trim();
+  const pass=document.getElementById('authPass').value;
+  const name=document.getElementById('authName').value.trim();
+  const btn=document.getElementById('authSubmitBtn');
+  const errEl=document.getElementById('authErr');
+  const okEl=document.getElementById('authOk');
+  errEl.textContent=''; okEl.textContent='';
+  if(!email||!pass){ errEl.textContent='Please fill in all fields.'; return; }
+  if(authMode==='signup'&&!name){ errEl.textContent='Please enter a display name.'; return; }
+  btn.disabled=true; btn.textContent='⏳ Please wait…';
+  try{
+    if(authMode==='login'){
+      await fbAuth.signInWithEmailAndPassword(email,pass);
+      okEl.textContent='✅ Logged in!';
+    } else {
+      const cred=await fbAuth.createUserWithEmailAndPassword(email,pass);
+      await cred.user.updateProfile({displayName:name});
+      okEl.textContent='✅ Account created!';
+    }
+  } catch(e){
+    const msgs={
+      'auth/user-not-found':'No account found with that email.',
+      'auth/wrong-password':'Wrong password. Try again.',
+      'auth/email-already-in-use':'Email already taken. Try logging in.',
+      'auth/weak-password':'Password must be at least 6 characters.',
+      'auth/invalid-email':'Please enter a valid email address.',
+      'auth/invalid-credential':'Wrong email or password.',
+      'auth/too-many-requests':'Too many attempts. Try again later.',
+    };
+    errEl.textContent=msgs[e.code]||('Error: '+e.message);
+  } finally {
+    btn.disabled=false;
+    btn.textContent=authMode==='login'?'LOG IN ⚔️':'SIGN UP 🎲';
+  }
+}
+
+if(fbAuth){
+  fbAuth.onAuthStateChanged(async user=>{
+    if(user){
+      currentUser=user;
+      document.getElementById('authOverlay').style.display='none';
+      const name=user.displayName||user.email.split('@')[0];
+      document.getElementById('userBar').style.display='flex';
+      document.getElementById('userBarName').textContent=name;
+      await loadCloudSave();
+      updateNextMs(); updateBuffBar(); updateActiveGloveBar();
+      renderStatPass(); applyCosmetics(); checkItemRolls();
+    } else {
+      currentUser=null;
+      document.getElementById('authOverlay').style.display='flex';
+      document.getElementById('userBar').style.display='none';
+    }
+  });
+} else {
+  // Firebase unavailable — show guest mode automatically
+  playAsGuest();
+}
+
+async function doSignOut(){
+  await saveGame();
+  try{ if(fbAuth) await fbAuth.signOut(); }catch(e){}
+  currentUser=null;
+  document.getElementById('authOverlay').style.display='flex';
+  document.getElementById('userBar').style.display='none';
+  // reset auth form
+  document.getElementById('authEmail').value='';
+  document.getElementById('authPass').value='';
+  document.getElementById('authErr').textContent='';
+  document.getElementById('authOk').textContent='';
+  toast('👋 Signed out!');
+}
+
+function playAsGuest(){
+  document.getElementById('authOverlay').style.display='none';
+  document.getElementById('userBar').style.display='flex';
+  document.getElementById('userBarName').textContent='Guest 👤';
+  updateNextMs(); updateBuffBar(); updateActiveGloveBar();
+  renderStatPass(); applyCosmetics(); checkItemRolls();
+  toast('👤 Playing as Guest — progress won\'t be saved!');
+  // v1.6.0 save protection notice
+  setTimeout(()=>toast('🛡️ v1.6.0 — New save system active! Progress protected.'), 3000);
+}
+
+/* ═══════════════════════════════
+   CLOUD SAVE / LOAD
+═══════════════════════════════ */
+async function saveGame(){
+  const data=getSaveData();
+  try{ localStorage.setItem(SAVE_KEY,JSON.stringify(data)); }catch(e){}
+  if(currentUser){
+    try{ await fbDb.collection('saves').doc(currentUser.uid).set(data); }catch(e){}
+    await updateLbIfJoined();
+  }
+}
+
+async function loadCloudSave(){
+  let cloudData=null, localData=null;
+
+  // try cloud
+  if(currentUser && fbDb){
+    try{
+      const doc=await fbDb.collection('saves').doc(currentUser.uid).get();
+      if(doc.exists) cloudData=doc.data();
+    }catch(e){}
+  }
+
+  // try localStorage — only trust it if it belongs to this user
+  try{
+    const local=localStorage.getItem(SAVE_KEY);
+    if(local){
+      const parsed=JSON.parse(local);
+      // only use local save if it was saved by this same account
+      if(!currentUser || parsed.uid === currentUser.uid){
+        localData=parsed;
+      }
+    }
+  }catch(e){}
+
+  // pick whichever has more rolls — never overwrite better progress
+  const cloudRolls = cloudData?.rollCount||0;
+  const localRolls = localData?.rollCount||0;
+
+  if(cloudData && localData){
+    if(localRolls > cloudRolls){
+      toast('🛡️ Local save was ahead — keeping your progress!');
+      applySaveData(localData);
+      // push better local save up to cloud
+      try{ if(currentUser && fbDb) await fbDb.collection('saves').doc(currentUser.uid).set(localData); }catch(e){}
+    } else {
+      applySaveData(cloudData);
+    }
+  } else if(cloudData){
+    applySaveData(cloudData);
+  } else if(localData){
+    applySaveData(localData);
+  }
+}
+
+// keep legacy loadGame for non-auth fallback
+async function loadGame(){ await loadCloudSave(); }
+
+// silent auto-save every 3 seconds
+let saveTimer=setInterval(saveGame,3000);
+
+/* ═══════════════════════════════
+   RAREST ROLL TRACKER
+═══════════════════════════════ */
+let rarestRolled = null;
+function updateRarest(r){
+  if(!rarestRolled || r.odds > rarestRolled.odds) rarestRolled=r;
+}
+
+/* ═══════════════════════════════
+   LEADERBOARD
+═══════════════════════════════ */
+/* ═══════════════════════════════
+   LEADERBOARD — Firebase Firestore
+═══════════════════════════════ */
+let lbJoined = false; // has this user posted to LB this session
+
+function renderLbSignupPrompt(){
+  const signupBox = document.getElementById('lbSignupBox');
+  const guestBox  = document.getElementById('lbGuestBox');
+  if(!signupBox||!guestBox) return;
+  if(currentUser){
+    // logged in — show signup prompt if not already joined
+    signupBox.style.display = lbJoined ? 'none' : 'block';
+    guestBox.style.display  = 'none';
+  } else {
+    // guest — show lock message
+    signupBox.style.display = 'none';
+    guestBox.style.display  = 'block';
+  }
+}
+
+async function joinLeaderboard(){
+  if(!currentUser || !fbDb){ showLbStatus('❌ Must be signed in!','#ff6644'); return; }
+  const name = currentUser.displayName || currentUser.email.split('@')[0];
+  showLbStatus('⏳ Posting…','#ffcc00');
+  try{
+    const uid = currentUser.uid;
+    const ts  = Date.now();
+    // coins
+    await fbDb.collection('lb_coins').doc(uid).set({ name, val:coins, ts });
+    // rolls
+    await fbDb.collection('lb_rolls').doc(uid).set({ name, val:rollCount, ts });
+    // rarest
+    if(rarestRolled){
+      await fbDb.collection('lb_rarest').doc(uid).set({ name, val:rarestRolled.odds, label:rarestRolled.emoji+' '+rarestRolled.name, color:rarestRolled.color, ts });
+    }
+    showLbStatus('✅ Scores posted!','#55dd55');
+    lbJoined = true;
+    document.getElementById('lbSignupBox').style.display = 'none';
+    loadAllBoards();
+  } catch(e){ showLbStatus('⚠️ Error: '+e.message,'#ff6644'); }
+}
+
+// Auto-update leaderboard scores on save if already joined
+async function updateLbIfJoined(){
+  if(!lbJoined || !currentUser || !fbDb) return;
+  const uid = currentUser.uid;
+  const name = currentUser.displayName || currentUser.email.split('@')[0];
+  const ts = Date.now();
+  try{
+    await fbDb.collection('lb_coins').doc(uid).set({ name, val:coins, ts });
+    await fbDb.collection('lb_rolls').doc(uid).set({ name, val:rollCount, ts });
+    if(rarestRolled) await fbDb.collection('lb_rarest').doc(uid).set({ name, val:rarestRolled.odds, label:rarestRolled.emoji+' '+rarestRolled.name, color:rarestRolled.color, ts });
+  } catch(e){}
+}
+
+function showLbStatus(msg,color){
+  const el=document.getElementById('lbStatus');
+  if(el){ el.textContent=msg; el.style.color=color; }
+}
+
+async function loadAllBoards(){
+  await Promise.all([
+    loadBoard('lb_coins','lb-coins','coins'),
+    loadBoard('lb_rolls','lb-rolls','rolls'),
+    loadBoard('lb_rarest','lb-rarest','rarest')
+  ]);
+}
+
+async function loadBoard(collection, elId, type){
+  const el=document.getElementById(elId);
+  if(!el) return;
+  el.innerHTML='<div class="lb-empty">⏳ Loading…</div>';
+  if(!fbDb){ el.innerHTML='<div class="lb-empty">⚠️ Sign in to see leaderboard</div>'; return; }
+  try{
+    const snap = await fbDb.collection(collection).orderBy('val', type==='rarest'?'asc':'desc').limit(10).get();
+    if(snap.empty){ el.innerHTML='<div class="lb-empty">No entries yet. Be the first!</div>'; return; }
+    el.innerHTML='';
+    const myUid = currentUser ? currentUser.uid : null;
+    snap.docs.forEach((doc,i)=>{
+      const e=doc.data();
+      const isMe = doc.id===myUid;
+      const rankColors=['gold-r','silver-r','bronze-r'];
+      const rankSymbols=['🥇','🥈','🥉'];
+      const row=document.createElement('div');
+      row.className='lb-row'+(isMe?' me':'');
+      const rankCls=i<3?rankColors[i]:'';
+      const rankTxt=i<3?rankSymbols[i]:`#${i+1}`;
+      let valTxt='', subTxt='';
+      if(type==='coins'){valTxt=e.val.toLocaleString()+' 🪙';subTxt='coins earned';}
+      else if(type==='rolls'){valTxt=e.val.toLocaleString();subTxt='rolls made';}
+      else{valTxt=e.label||'Unknown';subTxt='1 in '+e.val.toLocaleString();}
+      const valStyle=type==='rarest'&&e.color?`style="color:${e.color}"`:'';
+      row.innerHTML=`<span class="lb-rank ${rankCls}">${rankTxt}</span><span class="lb-name">${e.name}${isMe?' <span style="font-size:.5rem;color:#ffe066;font-family:Nunito,sans-serif;">(you)</span>':''}</span><div style="text-align:right"><div class="lb-val" ${valStyle}>${valTxt}</div><div class="lb-sub">${subTxt}</div></div>`;
+      el.appendChild(row);
+    });
+  } catch(e){ el.innerHTML='<div class="lb-empty">⚠️ Could not load — check Firestore rules</div>'; }
+}
+
+/* patch switchTab to also handle leaderboard */
+function switchTab(id,btn){
+  document.querySelectorAll('.panel').forEach(p=>{p.classList.remove('active');p.style.display='none';});
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  const panel=document.getElementById('tab-'+id);
+  if(panel){panel.classList.add('active');panel.style.display='block';}
+  btn.classList.add('active');
+  if(id==='gloves') renderGloves();
+  if(id==='lb'){ renderLbSignupPrompt(); loadAllBoards(); renderStatPass(); }
+  if(id==='index') updateAutoRollUI();
+}
+
+/* ═══════════════════════════════
+   STATPASS
+═══════════════════════════════ */
+function currentTier(){ return Math.min(Math.floor(spXP/SP_XP_PER_TIER), SP_MAX_TIER); }
+
+function gainSpXP(amt){
+  const prevTier=currentTier();
+  spXP+=amt;
+  const newTier=currentTier();
+  if(newTier>prevTier){
+    for(let t=prevTier+1;t<=newTier;t++) unlockSpTier(t);
+  }
+  renderStatPass();
+}
+
+function unlockSpTier(tier){
+  const td=SP_TIERS.find(t=>t.tier===tier);
+  if(!td) return;
+  if(td.reward){ coins+=td.reward; toast('🦆 StatPass Tier '+tier+'! +'+td.reward+' coins!'); updateCoins(); }
+  if(td.cosmeticId){
+    if(INV[td.cosmeticId]) INV[td.cosmeticId].earned=true;
+    toast('🦆 Tier '+tier+': '+td.name+' unlocked! Check 🎒 Inventory!');
+    if(td.cosmeticId==='ultraLuck') setTimeout(()=>{ doItemFlash('#ffffff', ()=>{ doItemFlash('#ffff00', null); }); toast('🌟 ULTRA LUCK earned! Activate from 🎒 Inventory!'); },400);
+  }
+}
+
+function renderStatPass(){
+  const tier=pirateTier();
+  const pct=tier>=PIRATE_MAX_TIER?100:((pirateXP%PIRATE_XP_PER_TIER)/PIRATE_XP_PER_TIER)*100;
+  const fillEl=document.getElementById('spBarFill');
+  const lblEl=document.getElementById('spBarLabel');
+  if(fillEl) fillEl.style.width=pct+'%';
+  if(lblEl) lblEl.textContent='Tier '+tier+' / '+PIRATE_MAX_TIER+' · '+pirateXP+' XP total'+(pirateRestarts>0?' · Restart #'+pirateRestarts:'');
+  const el=document.getElementById('statpassTiers'); if(!el) return;
+  el.innerHTML='';
+  const orderedTiers=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30];
+  orderedTiers.forEach(t=>{
+    const td=PIRATE_TIERS.find(x=>x.tier===t);
+    if(!td) return;
+    const unlocked=tier>=td.tier;
+    const div=document.createElement('div');
+    div.className='sp-tier'+(unlocked?' unlocked':'');
+    const badge=unlocked?'<span class="sp-tier-badge" style="color:#c8a046;border-color:#c8a04644">✓ UNLOCKED</span>':'<span class="sp-tier-badge">Tier '+td.tier+'</span>';
+    div.innerHTML=`<span class="sp-tier-num" style="${unlocked?'color:#c8a046':''}">#${td.tier}</span><span class="sp-tier-icon">${td.icon}</span><div class="sp-tier-info"><div class="sp-tier-name" style="color:${unlocked?'#ffd780':'#555577'}">${td.name}</div><div class="sp-tier-desc">${td.desc}</div></div>${badge}`;
+    el.appendChild(div);
+  });
+  updatePirateRestartUI();
+}
+
+/* ═══════════════════════════════
+   INVENTORY
+═══════════════════════════════ */
+function openInventory(){
+  const list=document.getElementById('inventoryList'); list.innerHTML='';
+
+  // ── DUCK EVENT (ENDED) ──
+  const duckHeader=document.createElement('div');
+  duckHeader.style.cssText='font-family:"Bangers","Impact",cursive;font-size:.75rem;letter-spacing:2px;color:#555577;margin:4px 0 8px;padding-bottom:6px;border-bottom:1px solid #2a2a40;';
+  duckHeader.textContent='🦆 DUCKY EVENT — ENDED';
+  list.appendChild(duckHeader);
+
+  Object.entries(INV).forEach(([id,item])=>{
+    const div=document.createElement('div');
+    div.className='inv-item'+(item.active?' active':'')+(item.earned?'':' locked');
+    div.style.opacity='0.7';
+    let btnLabel, btnCls;
+    if(id==='ultraLuck'){
+      btnLabel=item.earned?(ultraLuckRolls>0?'🌟 ACTIVE ('+ultraLuckRolls+')':'🌟 ACTIVATE'):'🔒';
+      btnCls=ultraLuckRolls>0?'on':'off';
+    } else {
+      btnLabel=item.earned?(item.active?'ON':'OFF'):'🔒';
+      btnCls=item.active?'on':'off';
+    }
+    div.innerHTML=`<span class="inv-icon">${item.icon}</span>
+      <div class="inv-info">
+        <div class="inv-name" style="color:${item.earned?'#aaaacc':'#444466'}">${item.name}</div>
+        <div class="inv-desc">${item.desc}</div>
+        <div class="inv-tier">TIER ${item.tier}</div>
+      </div>
+      <button class="inv-toggle ${btnCls}" ${item.earned?'':'disabled'} onclick="toggleInv('${id}')">${btnLabel}</button>`;
+    list.appendChild(div);
+  });
+
+  // ── PIRATE EVENT ──
+  const pirateHeader=document.createElement('div');
+  pirateHeader.style.cssText='font-family:"Bangers","Impact",cursive;font-size:.75rem;letter-spacing:2px;color:#c8a046;margin:14px 0 8px;padding-bottom:6px;border-bottom:1px solid #c8a04633;';
+  pirateHeader.textContent='🏴‍☠️ PIRATE EVENT';
+  list.appendChild(pirateHeader);
+
+  Object.entries(PIRATE_INV).forEach(([id,item])=>{
+    const div=document.createElement('div');
+    div.className='inv-item'+(item.active?' active':'')+(item.earned?'':' locked');
+    let btnLabel, btnCls;
+    if(id==='pirateLuck'){
+      btnLabel=item.earned?(pirateLuckRolls>0?"☠️ ACTIVE ("+pirateLuckRolls+")":"☠️ ACTIVATE"):'🔒';
+      btnCls=pirateLuckRolls>0?'on':'off';
+    } else if(id==='yarghDiscount'){
+      btnLabel=item.earned?(item.used?'USED':'⚓ ACTIVATE'):'🔒';
+      btnCls=item.used?'off':(item.active?'on':'off');
+    } else {
+      btnLabel=item.earned?(item.active?'ON':'OFF'):'🔒';
+      btnCls=item.active?'on':'off';
+    }
+    div.style.borderColor=item.earned?'#c8a04633':'';
+    div.innerHTML=`<span class="inv-icon">${item.icon}</span>
+      <div class="inv-info">
+        <div class="inv-name" style="color:${item.earned?'#ffd780':'#444466'}">${item.name}</div>
+        <div class="inv-desc">${item.desc}</div>
+        <div class="inv-tier" style="color:#c8a04688">TIER ${item.tier} · PIRATE EVENT</div>
+      </div>
+      <button class="inv-toggle ${btnCls}" ${item.earned?'':'disabled'} onclick="togglePirateInv('${id}')">${btnLabel}</button>`;
+    list.appendChild(div);
+  });
+
+  document.getElementById('inventoryOverlay').style.display='flex';
+}
+
+function closeInventory(){ document.getElementById('inventoryOverlay').style.display='none'; }
+
+function toggleInv(id){
+  if(!INV[id]||!INV[id].earned) return;
+  if(id==='ultraLuck'){
+    if(ultraLuckRolls>0){ toast('🌟 ULTRA LUCK already active! ('+ultraLuckRolls+' rolls left)'); return; }
+    ultraLuckRolls=3;
+    ultraLuckUsed=true;
+    INV[id].active=true;
+    updateBuffBar();
+    closeInventory();
+    toast('🌟 ULTRA LUCK ACTIVATED! Next 3 rolls guaranteed 250k+!');
+    return;
+  }
+  INV[id].active=!INV[id].active;
+  applyCosmetics(); openInventory();
+}
+
+function applyCosmetics(){
+  // Yellow screen
+  document.body.classList.toggle('duck-yellow',!!INV.yellowScreen.active);
+  // Beach screen
+  const beachOn=!!PIRATE_INV.beachScreen?.active;
+  document.body.classList.toggle('beach-screen',beachOn);
+  if(beachOn && !beachAnimFrame) startBeachAnim();
+  else if(!beachOn) stopBeachAnim();
+  // YA-ARGH discount
+  window._yarghActive=!!PIRATE_INV.yarghDiscount?.active;
+  // Title rename — priority: Map Finder > Duck Roller > default
+  const h1=document.querySelector('h1');
+  if(h1){
+    const duckEvery=!!INV.duckEverywhere.active;
+    const duckRoll=!!INV.duckRoller.active;
+    const mapFind=!!PIRATE_INV.mapFinder?.active;
+    const goldEvery=!!PIRATE_INV.goldEverywhere?.active;
+    const prefix=duckEvery||goldEvery?'🦆 ':'⚔ ';
+    const goldPrefix=goldEvery?'💰 ':'';
+    if(mapFind) h1.textContent=(duckEvery?'🦆 ':goldEvery?'💰 ':'⚔ ')+'MAP FINDER'+(duckEvery?' 🦆':goldEvery?' 💰':'');
+    else if(duckRoll) h1.textContent=duckEvery?'🦆 DUCK ROLLER 🦆':'⚔ DUCK ROLLER';
+    else h1.textContent=duckEvery?'🦆 STAT ROLLER 🦆':goldEvery?'💰 STAT ROLLER 💰':'⚔ STAT ROLLER';
+  }
+  // Duck everywhere — ducks on pill labels
+  const duckOn=!!INV.duckEverywhere.active;
+  const goldOn=!!PIRATE_INV.goldEverywhere?.active;
+  const pillLbls=document.querySelectorAll('.pill-lbl');
+  pillLbls.forEach(l=>{
+    l.textContent=l.textContent.replace('🦆 ','').replace('💰 ','');
+    if(duckOn) l.textContent='🦆 '+l.textContent;
+    else if(goldOn) l.textContent='💰 '+l.textContent;
+  });
+  const slbls=document.querySelectorAll('.slbl');
+  slbls.forEach(l=>{
+    l.textContent=l.textContent.replace('🦆 ','').replace('💰 ','');
+    if(duckOn) l.textContent='🦆 '+l.textContent;
+    else if(goldOn) l.textContent='💰 '+l.textContent;
+  });
+  // Quotes bar
+  const qbar=document.getElementById('duckQuoteBar');
+  if(qbar) qbar.style.display=(INV.duckQuotes.active||PIRATE_INV.pirateQuotes?.active)?'block':'none';
+}
+
+function showDuckQuote(){
+  const bar=document.getElementById('duckQuoteBar');
+  if(!bar) return;
+  if(INV.duckQuotes.active){
+    const q=DUCK_QUOTES[Math.floor(Math.random()*DUCK_QUOTES.length)];
+    bar.textContent=q;
+  } else if(PIRATE_INV.pirateQuotes?.active){
+    const q=PIRATE_QUOTES[Math.floor(Math.random()*PIRATE_QUOTES.length)];
+    bar.textContent=q;
+    bar.style.color='#c8a046';
+    bar.style.borderColor='#c8a04633';
+  }
+}
+
+/* ═══════════════════════════════
+   AUTO ROLL SETTINGS
+═══════════════════════════════ */
+function updateAutoRollUI(){
+  const aBadge=document.getElementById('autoRollBadge');
+  const qBadge=document.getElementById('quickRollBadge');
+  const eBadge=document.getElementById('efficientRollBadge');
+  const aBtn=document.getElementById('autoRollToggle');
+  const qBtn=document.getElementById('quickRollToggle');
+  const eBtn=document.getElementById('efficientRollToggle');
+  if(!aBadge) return;
+
+  // unlock buttons if owned
+  if(P.autoroll){ aBtn.disabled=false; aBtn.style.color='#aaaaff'; aBtn.style.borderColor='#aaaaff55'; }
+  if(P.quickroll){ qBtn.disabled=false; qBtn.style.color='#ffcc00'; qBtn.style.borderColor='#ffcc0055'; }
+  if(P.efficientroll){ eBtn.disabled=false; eBtn.style.color='#ff8800'; eBtn.style.borderColor='#ff880055'; }
+
+  // badges
+  const aOn = autoRollMode==='auto';
+  const eOn = autoRollMode==='efficient';
+  const qOn = quickRollEnabled;
+  aBadge.textContent=aOn?'ON':'OFF'; aBadge.style.background=aOn?'#22aa4422':'#2a2a40'; aBadge.style.color=aOn?'#55dd55':'#6666aa';
+  qBadge.textContent=qOn?'ON':'OFF'; qBadge.style.background=qOn?'#aaaa0022':'#2a2a40'; qBadge.style.color=qOn?'#ffcc00':'#6666aa';
+  eBadge.textContent=eOn?'ON':'OFF'; eBadge.style.background=eOn?'#ff880022':'#2a2a40'; eBadge.style.color=eOn?'#ff8800':'#6666aa';
+
+  aBtn.textContent=aOn?'DISABLE AUTO ROLL':'ENABLE AUTO ROLL';
+  qBtn.textContent=qOn?'DISABLE QUICK ROLL':'ENABLE QUICK ROLL';
+  eBtn.textContent=eOn?'DISABLE EFFICIENT ROLL':'ENABLE EFFICIENT ROLL';
+}
+
+function stopAutoRoll(){
+  if(autoRollInterval){ clearInterval(autoRollInterval); autoRollInterval=null; }
+  autoRollMode=null;
+}
+
+function toggleAutoRoll(){
+  if(!P.autoroll) return;
+  if(autoRollMode==='auto'){ stopAutoRoll(); updateAutoRollUI(); toast('🔄 Auto Roll OFF.'); return; }
+  stopAutoRoll(); quickRollEnabled=false;
+  autoRollMode='auto';
+  if(!rolling) doRoll();
+  autoRollInterval=setInterval(()=>{ if(!rolling && autoRollMode==='auto') doRoll(); },3000);
+  updateAutoRollUI(); toast('🔄 Auto Roll ON — rolls every 3s permanently!');
+}
+
+function toggleQuickRoll(){
+  if(!P.quickroll) return;
+  if(quickRollEnabled){ quickRollEnabled=false; updateAutoRollUI(); toast('⚡ Quick Roll OFF.'); return; }
+  if(autoRollMode){ toast('❌ Cannot use Quick Roll while Auto/Efficient Roll is active!'); return; }
+  quickRollEnabled=true;
+  updateAutoRollUI(); toast('⚡ Quick Roll ON — 1 second between rolls!');
+}
+
+function toggleEfficientRoll(){
+  if(!P.efficientroll) return;
+  if(autoRollMode==='efficient'){ stopAutoRoll(); updateAutoRollUI(); toast('🚀 Efficient Roll OFF.'); return; }
+  stopAutoRoll(); quickRollEnabled=false;
+  autoRollMode='efficient';
+  if(!rolling) doRoll();
+  autoRollInterval=setInterval(()=>{ if(!rolling && autoRollMode==='efficient') doRoll(); },300);
+  updateAutoRollUI(); toast('🚀 EFFICIENT ROLL ON — max speed!');
+}
+
+// Stop auto roll when switching away from game
+window.addEventListener('visibilitychange',()=>{ if(document.hidden && autoRollMode) stopAutoRoll(); });
+
+/* ═══════════════════════════════
+   ITEM ROLLS
+═══════════════════════════════ */
+function checkItemRolls(){
+  ITEM_ROLLS.forEach(ir=>{
+    const btn=document.getElementById(ir.btnId);
+    if(!btn) return;
+    btn.style.display = ir.check() ? 'block' : 'none';
+  });
+}
+
+function doItemRoll(id){
+  if(rolling) return;
+  const ir=ITEM_ROLLS.find(x=>x.id===id);
+  if(!ir || !ir.check()){ toast('❌ Requirements no longer met!'); checkItemRolls(); return; }
+
+  rolling=true;
+  document.getElementById('rollBtn').disabled=true;
+  document.getElementById('itemRollLucky').disabled=true;
+  document.getElementById('itemRollDiablo').disabled=true;
+
+  // spin animation then reveal
+  animSpin(()=>{
+    const hit = Math.random() < (1/ir.odds);
+    if(hit){
+      if(ir.id==='lucky'){ itemRollHits.luckypot++; }
+      if(ir.id==='diablo'){ itemRollHits.diablo++; }
+      checkAchievements();
+      // SCREEN FLASH
+      doItemFlash(ir.flashColor, ()=>{
+        coins += ir.coinReward;
+        updateCoins();
+        toast(`${ir.emoji} ${ir.name.toUpperCase()}! +${ir.coinReward.toLocaleString()} coins!`);
+        // show in result box with glow
+        const box=document.getElementById('resultBox');
+        const lbl=document.getElementById('rlabel');
+        const oEl=document.getElementById('rodds');
+        const bEl=document.getElementById('rbonus');
+        document.getElementById('rph').style.display='none';
+        lbl.style.display=oEl.style.display=bEl.style.display='';
+        lbl.textContent=ir.emoji+' '+ir.name;
+        lbl.style.color=ir.color;
+        lbl.style.textShadow=`0 0 40px ${ir.color}, 0 0 80px ${ir.color}88`;
+        oEl.textContent='1 in '+ir.odds.toLocaleString()+' · ITEM ROLL';
+        bEl.textContent='+'+ir.coinReward.toLocaleString()+' 🪙';
+        box.style.borderColor=ir.color;
+        box.style.boxShadow=`0 0 40px ${ir.color}66, inset 0 0 30px ${ir.color}22`;
+        saveGame();
+      });
+    } else {
+      toast(`${ir.emoji} Not this time... (1 in ${ir.odds.toLocaleString()})`);
+    }
+    rolling=false;
+    document.getElementById('rollBtn').disabled=false;
+    document.getElementById('itemRollLucky').disabled=false;
+    document.getElementById('itemRollDiablo').disabled=false;
+    checkItemRolls();
+  });
+}
+
+function doItemFlash(color, cb){
+  const flash=document.createElement('div');
+  flash.style.cssText=`position:fixed;inset:0;z-index:99999;background:${color};opacity:0;pointer-events:none;transition:opacity .1s;`;
+  document.body.appendChild(flash);
+  requestAnimationFrame(()=>{
+    flash.style.opacity='0.7';
+    setTimeout(()=>{
+      flash.style.transition='opacity .6s';
+      flash.style.opacity='0';
+      setTimeout(()=>{ flash.remove(); if(cb) cb(); },600);
+    },120);
+  });
+}
+
+/* ═══════════════════════════════
+   ACHIEVEMENTS
+═══════════════════════════════ */
+const ACHIEVEMENTS=[
+  // Roll Milestones
+  {id:'roll1',     cat:'🎲 Roll Milestones', icon:'🖱️', name:'First Roll',    desc:"You clicked a button. A single button. Your parents are so proud. Or maybe not.",             check:()=>rollCount>=1},
+  {id:'roll100',   cat:'🎲 Roll Milestones', icon:'🎮', name:'Getting Started',desc:"100 rolls already? The addiction has begun. There is no turning back now.",                    check:()=>rollCount>=100},
+  {id:'roll1k',    cat:'🎲 Roll Milestones', icon:'😬', name:'Grinder',        desc:"1,000 rolls. The grass outside is literally calling your name. It misses you.",               check:()=>rollCount>=1000},
+  {id:'roll10k',   cat:'🎲 Roll Milestones', icon:'💀', name:'Dedicated',      desc:"10,000 rolls. Bro has absolutely zero life. We are genuinely concerned about you.",           check:()=>rollCount>=10000},
+  {id:'roll100k',  cat:'🎲 Roll Milestones', icon:'🏥', name:'Insane',         desc:"100,000 rolls. At this point you live here. We should charge you rent.",                      check:()=>rollCount>=100000},
+  // Rarity Achievements
+  {id:'gotrare',   cat:'💎 Rarity',          icon:'💎', name:'Lucky Break',    desc:"You rolled something decent for once. Don't get comfortable though. RNG hates you.",         check:()=>R.find(r=>r.name===rarestRolled)?.odds>=10},
+  {id:'gotsecret', cat:'💎 Rarity',          icon:'⭐', name:'Secret Hunter',  desc:"Ooh a secret rarity. You're special ig. Don't let it go to your head though.",              check:()=>R.find(r=>r.name===rarestRolled)?.secret},
+  {id:'gotultra',  cat:'💎 Rarity',          icon:'🌌', name:'Ultra Finder',   desc:"Bro actually found an ultra rarity. Nobody believes you. Show the screenshot or it didn't happen.", check:()=>R.find(r=>r.name===rarestRolled)?.ultra},
+  {id:'gotvoid',   cat:'💎 Rarity',          icon:'🌑', name:'Void Walker',    desc:"You rolled Void. The void stared back. You waved at it. It did not wave back.",             check:()=>allRolledNames.has('Void')},
+  {id:'gotceles',  cat:'💎 Rarity',          icon:'🌠', name:'Celestial Being',desc:"Celestial obtained. You are built different from the rest of us. Unfortunately that changes nothing.", check:()=>allRolledNames.has('Celestial')},
+  {id:'gotomnip',  cat:'💎 Rarity',          icon:'👁️', name:'I Met God',      desc:"OMNIPOTENT. You need to go outside RIGHT NOW. Call your family. Touch every blade of grass.", check:()=>allRolledNames.has('OMNIPOTENT')},
+  // Coin Achievements
+  {id:'coin1k',    cat:'🪙 Coins',           icon:'🪙', name:'Pocket Change',  desc:"1,000 coins earned. Don't spend it all at once. Actually do whatever you want we're not your mom.", check:()=>totalCoinsEarned>=1000},
+  {id:'coin100k',  cat:'🪙 Coins',           icon:'💰', name:'Getting Rich',   desc:"100,000 coins. You're getting there. Your actual bank account is still empty though.",      check:()=>totalCoinsEarned>=100000},
+  {id:'coin1m',    cat:'🪙 Coins',           icon:'🤑', name:'Millionaire',    desc:"1,000,000 coins. Fake rich. Real sad. But hey at least you have something going for you.",  check:()=>totalCoinsEarned>=1000000},
+  {id:'coin1b',    cat:'🪙 Coins',           icon:'🏦', name:'Billionaire',    desc:"1,000,000,000 coins. You have genuinely wasted a significant portion of your life on this. We respect it deeply.", check:()=>totalCoinsEarned>=1000000000},
+  // Secret Achievements
+  {id:'sec_sunlight', cat:'🔒 Secret',       icon:'🌓', name:'???', desc:"You haven't unlocked this yet. Keep trying. Or don't. We're not your dad.",           secret:true, check:()=>allRolledNames.has('Sunlight Moonlight')},
+  {id:'sec_ultraluck',cat:'🔒 Secret',       icon:'🌟', name:'???', desc:"Something is hidden here. We're not telling you what. Figure it out yourself.",       secret:true, check:()=>ultraLuckUsed},
+  {id:'sec_luckypot', cat:'🔒 Secret',       icon:'🍀', name:'???', desc:"This one's a mystery. Maybe roll more. Maybe touch grass. Who knows.",                 secret:true, check:()=>itemRollHits.luckypot>0},
+  {id:'sec_diablo',   cat:'🔒 Secret',       icon:'😈', name:'???', desc:"Hidden in the shadows. Very mysterious. Very secret. Very none of your business.",     secret:true, check:()=>itemRollHits.diablo>0},
+  {id:'sec_tier30',   cat:'🔒 Secret',       icon:'🏆', name:'???', desc:"If you're reading this you're already too deep in. There's no escape now.",           secret:true, check:()=>currentTier()>=30},
+];
+
+// Achievement/collection tracking (declared at top of state block)
+
+function checkAchievements(){
+  let newUnlock=false;
+  ACHIEVEMENTS.forEach(a=>{
+    if(!unlockedAchievements.has(a.id) && a.check()){
+      unlockedAchievements.add(a.id);
+      newUnlock=true;
+      setTimeout(()=>toast('🏆 Achievement unlocked: '+(a.secret?'???':a.name)+'!'),300);
+    }
+  });
+  if(newUnlock) saveGame();
+}
+
+function openAchievements(){
+  renderAchievements();
+  document.getElementById('achievementsOverlay').style.display='flex';
+}
+function closeAchievements(){ document.getElementById('achievementsOverlay').style.display='none'; }
+
+function renderAchievements(){
+  const list=document.getElementById('achievementsList');
+  list.innerHTML='';
+  const cats=[...new Set(ACHIEVEMENTS.map(a=>a.cat))];
+  const total=ACHIEVEMENTS.length;
+  const done=unlockedAchievements.size;
+  // progress bar
+  list.innerHTML=`<div style="background:var(--p2);border:1px solid #2a2a40;border-radius:10px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;">
+    <span style="font-size:.65rem;font-weight:800;color:#aa88ff;letter-spacing:1px;">${done} / ${total} UNLOCKED</span>
+    <div style="flex:1;margin:0 12px;height:6px;background:#1a1a2e;border-radius:4px;overflow:hidden;"><div style="height:100%;width:${Math.round(done/total*100)}%;background:linear-gradient(90deg,#aa88ff,#ff88ff);border-radius:4px;transition:width .4s;"></div></div>
+    <span style="font-size:.65rem;font-weight:800;color:#6644aa;">${Math.round(done/total*100)}%</span>
+  </div>`;
+  cats.forEach(cat=>{
+    const sec=document.createElement('div');
+    sec.className='ach-section';
+    sec.textContent=cat;
+    list.appendChild(sec);
+    ACHIEVEMENTS.filter(a=>a.cat===cat).forEach(a=>{
+      const unlocked=unlockedAchievements.has(a.id);
+      const isSecret=a.secret && !unlocked;
+      const div=document.createElement('div');
+      div.className='ach-item'+(unlocked?' unlocked':' locked')+(a.secret?' secret':'');
+      div.innerHTML=`
+        <div class="ach-icon ${unlocked?'':'locked-icon'}">${isSecret?'🔒':a.icon}</div>
+        <div style="flex:1">
+          <div class="ach-name" style="color:${unlocked?'#e8e8ff':'#444466'}">${isSecret?'???':a.name}</div>
+          <div class="ach-desc">${a.desc}</div>
+        </div>
+        <span class="ach-badge ${unlocked?'done':'nope'}">${unlocked?'✅ DONE':'🔒'}</span>`;
+      list.appendChild(div);
+    });
+  });
+}
+
+/* ── PIRATE EVENT ──
+   Separate StatPass from Duck Event
+═══════════════════════════════ */
+// All PIRATE_ constants, state vars, TIERS, INV, QUOTES declared at top of state block
+
+function pirateTier(){ return Math.min(Math.floor(pirateXP/PIRATE_XP_PER_TIER), PIRATE_MAX_TIER); }
+
+function gainPirateXP(n){
+  const before=pirateTier();
+  pirateXP+=n;
+  const after=pirateTier();
+  for(let t=before+1;t<=after;t++) unlockPirateTier(t);
+  renderStatPass();
+}
+
+function unlockPirateTier(tier){
+  const td=PIRATE_TIERS.find(t=>t.tier===tier);
+  if(!td) return;
+  if(td.reward){ coins+=td.reward; toast('🏴‍☠️ Pirate Tier '+tier+'! +'+td.reward.toLocaleString()+' coins!'); updateCoins(); }
+  if(td.cosmeticId){
+    // On restart runs — replace cosmetics with coins instead
+    const restartCoinMap={5:2000, 10:5000, 15:10000, 20:15000, 25:25000, 30:0};
+    if(pirateRestarts>0 && td.cosmeticId!=='pirateLuck'){
+      const bonus=restartCoinMap[tier]||0;
+      if(bonus>0){
+        coins+=bonus; updateCoins();
+        toast('🏴‍☠️ Tier '+tier+' (Restart): +'+bonus.toLocaleString()+' coins instead of cosmetic!');
+      }
+    } else {
+      if(PIRATE_INV[td.cosmeticId]) PIRATE_INV[td.cosmeticId].earned=true;
+      toast('🏴‍☠️ Tier '+tier+': '+td.name+' unlocked! Check 🎒 Inventory!');
+      if(td.cosmeticId==='pirateLuck') setTimeout(()=>{ doItemFlash('#00cc88',()=>doItemFlash('#c8a046',null)); toast("☠️ PIRATE'S LUCK earned! Activate from 🎒 Inventory!"); },400);
+    }
+  }
+  updatePirateRestartUI();
+}
+
+function restartPiratePass(){
+  const restartCost=getPirateRestartCost();
+  if(pirateRestarts>=PIRATE_MAX_RESTARTS){ toast("☠️ Max restarts reached (25)!"); return; }
+  if(pirateTier()<PIRATE_MAX_TIER){ toast("⚓ Complete Tier 30 first!"); return; }
+  if(coins<restartCost){ toast("❌ Need "+restartCost.toLocaleString()+" coins to restart!"); return; }
+  coins-=restartCost; pirateXP=0; pirateRestarts++;
+
+  // Cosmetic tiers convert to coins on restart instead of being lost
+  const COSMETIC_COIN_VALUE={ goldEverywhere:500, beachScreen:1000, yarghDiscount:1500, pirateQuotes:750, mapFinder:1000 };
+  let bonusCoins=0;
+  Object.entries(COSMETIC_COIN_VALUE).forEach(([id,val])=>{
+    if(PIRATE_INV[id]?.earned){ bonusCoins+=val; }
+  });
+  if(bonusCoins>0){
+    coins+=bonusCoins;
+    toast('🪙 Cosmetics converted: +'+bonusCoins.toLocaleString()+' coins!');
+  }
+
+  // Reset all pirate inv (cosmetics re-earnable, pirateLuck re-earnable)
+  Object.values(PIRATE_INV).forEach(v=>{ v.earned=false; v.active=false; if(v.used!==undefined) v.used=false; });
+
+  updateCoins(); renderStatPass(); updatePirateRestartUI();
+  toast('🏴‍☠️ StatPass restarted! Restart #'+pirateRestarts+' — Hunt for DUTCHMAN!');
+}
+
+function getPirateRestartCost(){
+  return Math.min(PIRATE_RESTART_BASE * Math.pow(2, pirateRestarts), 2500000);
+}
+
+function updatePirateRestartUI(){
+  const btn=document.getElementById('pirateRestartBtn');
+  const desc=document.getElementById('pirateRestartDesc');
+  if(!btn) return;
+  const tier=pirateTier();
+  const cost=getPirateRestartCost();
+  const maxed=pirateRestarts>=PIRATE_MAX_RESTARTS;
+  if(maxed){
+    btn.textContent='MAX RESTARTS (25) REACHED'; btn.disabled=true;
+    if(desc) desc.textContent='You have restarted 25 times. You are a legend.';
+  } else if(tier>=PIRATE_MAX_TIER){
+    btn.textContent='RESTART — '+cost.toLocaleString()+' 🪙';
+    btn.disabled=coins<cost;
+    btn.style.background=coins>=cost?'linear-gradient(135deg,#8a6a00,#c8a046)':'linear-gradient(135deg,#1a1400,#2a2000)';
+    btn.style.color=coins>=cost?'#0a0a12':'#888844';
+    btn.style.borderColor=coins>=cost?'#c8a04688':'#88884444';
+    if(desc) desc.textContent='Restart #'+(pirateRestarts+1)+' · Another shot at DUTCHMAN · ('+pirateRestarts+'/25 used) · Cost doubles each time';
+  } else {
+    btn.textContent='LOCKED — Complete Tier 30 First'; btn.disabled=true;
+    btn.style.background='linear-gradient(135deg,#1a1400,#0d0d0d)'; btn.style.color='#888844';
+    if(desc) desc.textContent='Complete all 30 tiers · Cost: '+cost.toLocaleString()+' coins';
+  }
+}
+
+function togglePirateInv(id){
+  if(!PIRATE_INV[id]||!PIRATE_INV[id].earned) return;
+
+  // Cosmetic conflict check — duck cosmetics must be off first
+  const PIRATE_COSMETICS=['goldEverywhere','beachScreen','mapFinder'];
+  if(PIRATE_COSMETICS.includes(id) && !PIRATE_INV[id].active){
+    const duckConflicts={
+      goldEverywhere: INV.duckEverywhere?.active,
+      beachScreen:    INV.yellowScreen?.active,
+      mapFinder:      INV.duckRoller?.active,
+    };
+    const conflictNames={
+      goldEverywhere:'Duck Everywhere 🦆',
+      beachScreen:   'Yellow Screen 💛',
+      mapFinder:     'Duck Roller 🦆',
+    };
+    if(duckConflicts[id]){
+      toast('⚠️ Deactivate '+conflictNames[id]+' first!');
+      return;
+    }
+  }
+
+  if(id==='yarghDiscount'){
+    if(PIRATE_INV.yarghDiscount.used){ toast('⚓ YA-ARGH! already used!'); return; }
+    PIRATE_INV.yarghDiscount.active=true; PIRATE_INV.yarghDiscount.used=true;
+    toast('⚓ YA-ARGH! 50% discount active for this session!');
+    applyCosmetics(); openInventory(); return;
+  }
+  if(id==='pirateLuck'){
+    if(pirateLuckRolls>0){ toast("☠️ PIRATE'S LUCK already active! ("+pirateLuckRolls+" rolls left)"); return; }
+    pirateLuckRolls=3; pirateLuckUsed=true;
+    PIRATE_INV[id].active=true;
+    updateBuffBar(); closeInventory();
+    toast("☠️ PIRATE'S LUCK ACTIVATED! Next 3 rolls 75k+ · DUTCHMAN may appear!"); return;
+  }
+  PIRATE_INV[id].active=!PIRATE_INV[id].active;
+  applyCosmetics(); openInventory();
+}
+
+/* Beach Screen Animation */
+function startBeachAnim(){
+  const canvas=document.getElementById('beachCanvas');
+  if(!canvas) return;
+  canvas.width=window.innerWidth; canvas.height=window.innerHeight;
+  const ctx=canvas.getContext('2d');
+  const fish=Array.from({length:8},(_,i)=>({
+    x:Math.random()*canvas.width, y:60+Math.random()*(canvas.height*0.45),
+    speed:(0.4+Math.random()*0.6)*(Math.random()<0.5?1:-1),
+    size:10+Math.random()*14,
+    color:['#e06040','#ddaa33','#33bbcc','#dd4488','#66cc44'][i%5],
+    wave:Math.random()*Math.PI*2
+  }));
+  let t=0;
+  function draw(){
+    canvas.width=window.innerWidth; canvas.height=window.innerHeight;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    const sky=ctx.createLinearGradient(0,0,0,canvas.height*0.45);
+    sky.addColorStop(0,'rgba(60,140,180,0.22)'); sky.addColorStop(1,'rgba(60,140,180,0.05)');
+    ctx.fillStyle=sky; ctx.fillRect(0,0,canvas.width,canvas.height*0.45);
+    const ocean=ctx.createLinearGradient(0,canvas.height*0.45,0,canvas.height);
+    ocean.addColorStop(0,'rgba(0,100,160,0.32)'); ocean.addColorStop(1,'rgba(0,50,110,0.42)');
+    ctx.fillStyle=ocean; ctx.fillRect(0,canvas.height*0.45,canvas.width,canvas.height*0.55);
+    for(let w=0;w<4;w++){
+      ctx.beginPath(); ctx.strokeStyle=`rgba(100,200,255,${0.07+w*0.025})`; ctx.lineWidth=2;
+      for(let x=0;x<=canvas.width;x+=4){
+        const y=canvas.height*(0.45+w*0.055)+Math.sin((x/80)+t*0.8+w)*7;
+        x===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+      }
+      ctx.stroke();
+    }
+    fish.forEach(f=>{
+      f.x+=f.speed; f.wave+=0.05;
+      if(f.x>canvas.width+30) f.x=-30;
+      if(f.x<-30) f.x=canvas.width+30;
+      const fy=f.y+Math.sin(f.wave)*10;
+      ctx.save(); ctx.translate(f.x,fy);
+      if(f.speed<0) ctx.scale(-1,1);
+      ctx.fillStyle=f.color+'88';
+      ctx.beginPath(); ctx.ellipse(0,0,f.size,f.size*0.5,0,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(-f.size,0); ctx.lineTo(-f.size-f.size*0.6,-f.size*0.4); ctx.lineTo(-f.size-f.size*0.6,f.size*0.4); ctx.closePath();
+      ctx.fillStyle=f.color+'66'; ctx.fill();
+      ctx.restore();
+    });
+    [0.12,0.33,0.54,0.73,0.90].forEach((xp,i)=>{
+      ctx.save(); ctx.translate(canvas.width*xp,canvas.height*0.97);
+      ctx.fillStyle=['#e8c090','#ddaa77','#cc9955','#bb8844','#eecc99'][i]+'88';
+      ctx.beginPath(); ctx.arc(0,0,5+i*2,Math.PI,0); ctx.fill(); ctx.restore();
+    });
+    t+=0.016;
+    beachAnimFrame=requestAnimationFrame(draw);
+  }
+  draw();
+}
+function stopBeachAnim(){ if(beachAnimFrame){ cancelAnimationFrame(beachAnimFrame); beachAnimFrame=null; } }
+
+/* ── INIT ── */
+window.addEventListener('beforeunload', ()=>{
+  const data=JSON.stringify(getSaveData());
+  try{ localStorage.setItem(SAVE_KEY,data); }catch(e){}
+});
+// Firebase auth handles init via onAuthStateChanged above
+
+</script>
+</body>
+</html>
